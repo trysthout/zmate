@@ -1,0 +1,33 @@
+[package]
+name = "sshd"
+version = "0.1.0"
+edition = "2021"
+description = "The sshd library for sharing Zellij terminal"
+license = "MIT"
+rust-version = "1.60"
+
+[dependencies]
+ansi_term = "0.12.1"
+anyhow = "1.0.75"
+async-trait = "0.1.74"
+bytes = "1.5.0"
+russh = "0.39.0"
+russh-keys = "0.38.0"
+thiserror = "1.0.50"
+tokio = { version = "1.33.0", features = ["sync"] }
+zellij-utils = { path = "../zellij-utils" }
+zellij-client = { path = "../zellij-client", version = "0.39.1" }
+zellij-server = { path = "../zellij-server", version = "0.39.1" }
+names = { version = "0.14.0", default-features = false }
+log = "0.4.17"
+dialoguer = "0.10.4"
+suggest = "0.4.0"
+crossbeam-channel = "0.5.8"
+signal-hook = "0.3.17"
+interprocess = "1.2.1"
+libc = "0.2.149"
+
+
+[[bin]]
+name= "zellij-ssh"
+path = "src/main.rs"

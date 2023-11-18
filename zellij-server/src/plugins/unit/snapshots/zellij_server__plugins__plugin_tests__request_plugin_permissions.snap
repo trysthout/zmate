@@ -1,0 +1,18 @@
+---
+source: zellij-server/src/plugins/./unit/plugin_tests.rs
+assertion_line: 5101
+expression: "format!(\"{:#?}\", new_tab_event)"
+---
+Some(
+    [
+        ChangeApplicationState,
+        ReadApplicationState,
+        ReadApplicationState,
+        ChangeApplicationState,
+        OpenFiles,
+        RunCommands,
+        OpenTerminalsOrPlugins,
+        WriteToStdin,
+        WebAccess,
+    ],
+)

@@ -1,0 +1,25 @@
+---
+source: src/tests/e2e/cases.rs
+assertion_line: 198
+expression: last_snapshot
+---
+ Zellij 
+┌──────┐
+│$ █   │
+│      │
+│      │
+│      │
+│      │
+│      │
+│      │
+│      │
+│      │
+│      │
+│      │
+│      │
+│      │
+│      │
+│      │
+└──────┘
+        
+        
