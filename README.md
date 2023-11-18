@@ -1,6 +1,7 @@
 # zmate
 
-This is a fork based on zellij version 0.39.1 that allows terminal sharing using ssh.
+This is a fork based on zellij version 0.39.1 that allows terminal sharing using ssh. Inspired by tmate.
+
 ## This project is in the early stages of development
 
 ## Quick Start
