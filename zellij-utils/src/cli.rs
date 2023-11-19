@@ -545,3 +545,18 @@ pub enum CliAction {
         name: String,
     },
 }
+
+#[derive(Clone)]
+pub enum ServerMode  {
+    Ssh,
+    Normal
+}
+
+impl std::fmt::Debug for ServerMode {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::Ssh => write!(f, "Ssh"),
+            Self::Normal => write!(f, "Normal"),
+        }
+    }
+}

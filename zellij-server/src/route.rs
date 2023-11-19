@@ -984,13 +984,21 @@ pub(crate) fn route_thread_main(
                             let _ = to_server.send(ServerInstruction::ConnStatus(client_id));
                             should_break = true;
                         },
-                        ClientToServerMsg::DetachSession(client_id) => {
-                            let _ = to_server.send(ServerInstruction::DetachSession(client_id));
+                        ClientToServerMsg::DetachSession(client_ids) => {
+                            let client_ids = if client_ids.len() == 0 {
+                               vec![client_id] 
+                            } else {
+                                client_ids
+                            };
+                            let _ = to_server.send(ServerInstruction::DetachSession(client_ids));
                             should_break = true;
                         },
                         ClientToServerMsg::ListClients => {
                             let _ = to_server.send(ServerInstruction::ActiveClients(client_id));
                         },
+                        ClientToServerMsg::ServerMode => {
+                            let _ = to_server.send(ServerInstruction::Mode(client_id));
+                        }
                     }
                     Ok(should_break)
                 };

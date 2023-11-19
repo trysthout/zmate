@@ -2,7 +2,7 @@ use russh::{CryptoVec, server::Handle, Sig};
 use tokio::sync::mpsc::{UnboundedReceiver, unbounded_channel};
 use zellij_utils::{cli::CliArgs, envs, cli::Command, cli::Sessions};
 
-use crate::{handler::HandlerEvent, ZellijClientData, zellij::{start_client, init_server}, ServerHandle, PtyRequest, ServerChannelId};
+use crate::{handler::HandlerEvent, ZellijClientData, zellij::start_client, ServerHandle, PtyRequest, ServerChannelId};
 
 pub struct Session {
     handle: Option<Handle>,
@@ -47,10 +47,6 @@ impl Session {
         match event {
             HandlerEvent::Authenticated(handle, tx) => {
                 self.handle = Some(handle.0);
-
-                if envs::get_session_name().is_err() {
-                    init_server(self.zellij_cli_args.clone());
-                }
 
                 self.zellij_cli_args.command = Some(Command::Sessions(Sessions::Attach { 
                     session_name: envs::get_session_name().ok(), 

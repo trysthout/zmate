@@ -5,7 +5,7 @@ use tokio::sync::mpsc::UnboundedSender;
 
 mod handler;
 mod session;
-mod zellij;
+pub mod zellij;
 mod ssh_input_output;
 mod session_util;
 pub mod server;

@@ -8,6 +8,7 @@ mod stdin_ansi_parser;
 mod stdin_handler;
 
 use log::info;
+use zellij_utils::ServerMode;
 use std::env::current_exe;
 use std::io::{self, Write};
 use std::path::Path;
@@ -49,6 +50,7 @@ pub(crate) enum ClientInstruction {
     LogError(Vec<String>),
     SwitchSession(ConnectToSession),
     SetSynchronizedOutput(Option<SyncOutput>),
+    ServerMode(ServerMode),
 }
 
 impl From<ServerToClientMsg> for ClientInstruction {
@@ -67,6 +69,9 @@ impl From<ServerToClientMsg> for ClientInstruction {
             ServerToClientMsg::SwitchSession(connect_to_session) => {
                 ClientInstruction::SwitchSession(connect_to_session)
             },
+            ServerToClientMsg::ServerMode(mode) => {
+                ClientInstruction::ServerMode(mode)
+            }
         }
     }
 }
@@ -87,6 +92,7 @@ impl From<&ClientInstruction> for ClientContext {
             ClientInstruction::DoneParsingStdinQuery => ClientContext::DoneParsingStdinQuery,
             ClientInstruction::SwitchSession(..) => ClientContext::SwitchSession,
             ClientInstruction::SetSynchronizedOutput(..) => ClientContext::SetSynchronisedOutput,
+            ClientInstruction::ServerMode(_) => ClientContext::ServerMode,
         }
     }
 }
@@ -240,6 +246,14 @@ pub fn start_client(
     };
 
     os_input.connect_to_server(&*ipc_pipe);
+    os_input.send_to_server(ClientToServerMsg::ServerMode);
+    let (msg, _) = os_input.recv_from_server().unwrap();
+    if let ServerToClientMsg::ServerMode(ServerMode::Ssh) = msg {
+        os_input.set_server_mode(ServerMode::Ssh)
+    } else {
+        os_input.set_server_mode(ServerMode::Normal)
+    }
+
     os_input.send_to_server(first_msg);
 
     let mut command_is_executing = CommandIsExecuting::new();

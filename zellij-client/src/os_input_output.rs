@@ -1,6 +1,6 @@
 use zellij_utils::anyhow::{Context, Result};
 use zellij_utils::pane_size::Size;
-use zellij_utils::{interprocess, libc, nix, signal_hook};
+use zellij_utils::{interprocess, libc, nix, signal_hook, ServerMode};
 
 use interprocess::local_socket::LocalSocketStream;
 use mio::{unix::SourceFd, Events, Interest, Poll, Token};
@@ -80,6 +80,7 @@ pub struct ClientOsInputOutput {
     receive_instructions_from_server: Arc<Mutex<Option<IpcReceiverWithContext<ServerToClientMsg>>>>,
     reading_from_stdin: Arc<Mutex<Option<Vec<u8>>>>,
     session_name: Arc<Mutex<Option<String>>>,
+    server_mode: ServerMode,
 }
 
 /// The `ClientOsApi` trait represents an abstract interface to the features of an operating system that
@@ -118,6 +119,12 @@ pub trait ClientOsApi: Send + Sync {
     fn stdin_poller(&self) -> Box<dyn StdinPoller>;
     fn env_variable(&self, _name: &str) -> Option<String> {
         None
+    }
+    // Set server mode, ssh or normal
+    fn set_server_mode(&mut self, _mode: ServerMode) {}
+    // Get server mode, ssh or normal
+    fn get_server_mode(&self) -> ServerMode {
+        ServerMode::Normal
     }
     // ssh client close
     fn close(&self) {}
@@ -293,6 +300,14 @@ impl ClientOsApi for ClientOsInputOutput {
     fn env_variable(&self, name: &str) -> Option<String> {
         std::env::var(name).ok()
     }
+
+    fn set_server_mode(&mut self, mode: ServerMode) {
+        self.server_mode = mode;
+    }
+
+    fn get_server_mode(&self) -> ServerMode {
+        self.server_mode.clone()
+    }
 }
 
 impl Clone for Box<dyn ClientOsApi> {
@@ -311,6 +326,7 @@ pub fn get_client_os_input() -> Result<ClientOsInputOutput, nix::Error> {
         receive_instructions_from_server: Arc::new(Mutex::new(None)),
         reading_from_stdin,
         session_name: Arc::new(Mutex::new(None)),
+        server_mode: ServerMode::Normal,
     })
 }
 
@@ -323,6 +339,7 @@ pub fn get_cli_client_os_input() -> Result<ClientOsInputOutput, nix::Error> {
         receive_instructions_from_server: Arc::new(Mutex::new(None)),
         reading_from_stdin,
         session_name: Arc::new(Mutex::new(None)),
+        server_mode: ServerMode::Normal,
     })
 }
 

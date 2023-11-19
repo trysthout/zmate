@@ -597,7 +597,7 @@ fn get_ssh_client_input(
 }
 
 
-pub fn init_server(opts: CliArgs) -> JoinHandle<()> {
+pub fn init_zellij_server(opts: CliArgs) -> JoinHandle<()> {
     if let Some(ref name) = opts.session {
         envs::set_session_name(name.clone());
     } else {
@@ -605,6 +605,8 @@ pub fn init_server(opts: CliArgs) -> JoinHandle<()> {
             envs::set_session_name(generate_unique_session_name())
         }
     }
+
+    log::info!("session_name: {:?}", envs::get_session_name());
 
     zellij_utils::consts::DEBUG_MODE.set(opts.debug).unwrap();
     let os_input = get_os_input(get_server_os_input);
@@ -626,7 +628,7 @@ pub fn init_server(opts: CliArgs) -> JoinHandle<()> {
 
     let os_input = get_os_input(get_client_os_input);
 
-    init_client(
+    init_zellij_client(
         Box::new(os_input),
         opts,
         config,
@@ -640,7 +642,7 @@ pub fn init_server(opts: CliArgs) -> JoinHandle<()> {
 }
 
 
-pub fn init_client(
+pub fn init_zellij_client(
     os_input: Box<dyn ClientOsApi>,
     opts: zellij_utils::cli::CliArgs,
     config: Config,

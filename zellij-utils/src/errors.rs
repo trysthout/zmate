@@ -413,6 +413,7 @@ pub enum ClientContext {
     DoneParsingStdinQuery,
     SwitchSession,
     SetSynchronisedOutput,
+    ServerMode,
 }
 
 /// Stack call representations corresponding to the different types of [`ServerInstruction`]s.
@@ -431,6 +432,7 @@ pub enum ServerContext {
     ActiveClients,
     Log,
     SwitchSession,
+    Mode,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
