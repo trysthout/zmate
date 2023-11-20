@@ -9,7 +9,7 @@ use std::{
 
 use log::LevelFilter;
 
-use log4rs::append::{
+use log4rs::{append::{
     console::ConsoleAppender,
     rolling_file::{
         policy::compound::{
@@ -17,7 +17,7 @@ use log4rs::append::{
         },
         RollingFileAppender,
     },
-};
+}, Handle};
 use log4rs::config::{Appender, Config, Logger, Root};
 use log4rs::encode::pattern::PatternEncoder;
 
@@ -26,7 +26,16 @@ use crate::shared::set_permissions;
 
 const LOG_MAX_BYTES: u64 = 1024 * 1024 * 16; // 16 MiB per log
 
-pub fn configure_logger() {
+pub fn configure_logger(output_stdout: bool, handle: Option<Handle>) -> log4rs::Handle {
+    handle.map_or_else(|| {
+        log4rs::init_config(create_logger_config(output_stdout)).unwrap()
+    }, |handle| {
+        handle.set_config(create_logger_config(output_stdout));
+        handle
+    })
+}
+
+pub fn create_logger_config(output_stdout: bool) -> log4rs::Config {
     atomic_create_dir(&*ZELLIJ_TMP_DIR).unwrap();
     atomic_create_dir(&*ZELLIJ_TMP_LOG_DIR).unwrap();
     atomic_create_file(&*ZELLIJ_TMP_LOG_FILE).unwrap();
@@ -88,16 +97,17 @@ pub fn configure_logger() {
                 .appender("logPlugin")
                 .additive(false)
                 .build("zellij_server::logging_pipe", LevelFilter::Trace),
-        )
-        .build(
-            Root::builder()
-                .appender("stdout")
-                .appender("logFile")
-                .build(LevelFilter::Info),
-        )
-        .unwrap();
+        );
 
-    let _ = log4rs::init_config(config).unwrap();
+    let root_bulder = if output_stdout {
+        Root::builder().appender("stdout")
+    } else {
+        Root::builder()
+    };
+
+    config
+        .build(root_bulder.appender("logFile").build(LevelFilter::Info))
+        .unwrap()
 }
 
 pub fn atomic_create_file(file_name: &Path) -> io::Result<()> {

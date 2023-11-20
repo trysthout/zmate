@@ -12,7 +12,7 @@ use zellij_utils::{
 };
 
 fn main() {
-    configure_logger();
+    let logger_handle = configure_logger(false, None);
     let opts = CliArgs::parse();
 
     {
@@ -132,6 +132,7 @@ fn main() {
     {
         commands::delete_session(target_session, force);
     } else if let Some(Command::Ssh(ssh_opts)) = opts.command.clone() {
+        configure_logger(true, Some(logger_handle));
         println!("{:?}", ssh_opts);
         ssh::start(opts, ssh_opts)
     } else if let Some(path) = opts.server {
