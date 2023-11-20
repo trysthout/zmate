@@ -1,11 +1,13 @@
 use std::sync::Arc;
 
-use russh::{MethodSet, server};
+use russh::{server, MethodSet};
 use tokio::sync::mpsc::unbounded_channel;
 use zellij_utils::{cli::CliArgs, ssh::Ssh};
 
-use crate::{handler::{HandlerEvent, Handler}, session::Session};
-
+use crate::{
+    handler::{Handler, HandlerEvent},
+    session::Session,
+};
 
 pub struct Server {
     args: CliArgs,
@@ -14,10 +16,7 @@ pub struct Server {
 
 impl Server {
     pub fn new(args: CliArgs, ssh_opts: Ssh) -> Self {
-        Self { 
-            args,
-            ssh_opts 
-        }
+        Self { args, ssh_opts }
     }
 
     pub async fn listen(self) -> Result<(), std::io::Error> {

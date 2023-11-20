@@ -986,7 +986,7 @@ pub(crate) fn route_thread_main(
                         },
                         ClientToServerMsg::DetachSession(client_ids) => {
                             let client_ids = if client_ids.len() == 0 {
-                               vec![client_id] 
+                                vec![client_id]
                             } else {
                                 client_ids
                             };
@@ -998,7 +998,7 @@ pub(crate) fn route_thread_main(
                         },
                         ClientToServerMsg::ServerMode => {
                             let _ = to_server.send(ServerInstruction::Mode(client_id));
-                        }
+                        },
                     }
                     Ok(should_break)
                 };

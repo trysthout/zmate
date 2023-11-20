@@ -2,10 +2,10 @@ use crate::os_input_output::ClientOsApi;
 use crate::stdin_ansi_parser::StdinAnsiParser;
 use crate::InputInstruction;
 use std::sync::{Arc, Mutex};
-use zellij_utils::ServerMode;
 use zellij_utils::channels::SenderWithContext;
 use zellij_utils::ipc::ClientToServerMsg;
 use zellij_utils::termwiz::input::{InputEvent, InputParser, MouseButtons};
+use zellij_utils::ServerMode;
 
 fn send_done_parsing_after_query_timeout(
     send_input_instructions: SenderWithContext<InputInstruction>,
@@ -64,7 +64,10 @@ pub(crate) fn stdin_loop(
         match os_input.read_from_stdin() {
             Ok(buf) => {
                 {
-                    if os_input.get_server_mode() == ServerMode::Ssh && (&buf).len() == 1 && &buf[0] == &4 {
+                    if os_input.get_server_mode() == ServerMode::Ssh
+                        && (&buf).len() == 1
+                        && &buf[0] == &4
+                    {
                         os_input.send_to_server(ClientToServerMsg::DetachSession(vec![]));
                         break;
                     }

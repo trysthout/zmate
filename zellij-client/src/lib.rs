@@ -1,14 +1,13 @@
-pub mod os_input_output;
 pub mod cli_client;
-pub mod ssh_client;
 mod command_is_executing;
 mod input_handler;
 pub mod old_config_converter;
+pub mod os_input_output;
+pub mod ssh_client;
 mod stdin_ansi_parser;
 mod stdin_handler;
 
 use log::info;
-use zellij_utils::ServerMode;
 use std::env::current_exe;
 use std::io::{self, Write};
 use std::path::Path;
@@ -16,6 +15,7 @@ use std::process::Command;
 use std::sync::{Arc, Mutex};
 use std::thread;
 use zellij_utils::errors::FatalError;
+use zellij_utils::ServerMode;
 
 use crate::stdin_ansi_parser::{AnsiStdinInstruction, StdinAnsiParser, SyncOutput};
 use crate::{
@@ -69,9 +69,7 @@ impl From<ServerToClientMsg> for ClientInstruction {
             ServerToClientMsg::SwitchSession(connect_to_session) => {
                 ClientInstruction::SwitchSession(connect_to_session)
             },
-            ServerToClientMsg::ServerMode(mode) => {
-                ClientInstruction::ServerMode(mode)
-            }
+            ServerToClientMsg::ServerMode(mode) => ClientInstruction::ServerMode(mode),
         }
     }
 }

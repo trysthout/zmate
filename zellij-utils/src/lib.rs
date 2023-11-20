@@ -32,11 +32,10 @@ pub use ::{
 };
 
 pub use ::prost;
-use serde::{Serialize, Deserialize};
-
+use serde::{Deserialize, Serialize};
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
-pub enum ServerMode  {
+pub enum ServerMode {
     Ssh,
-    Normal
+    Normal,
 }

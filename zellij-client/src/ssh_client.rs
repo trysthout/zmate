@@ -1,8 +1,29 @@
-use std::{thread, sync::{Mutex, Arc}};
+use std::{
+    sync::{Arc, Mutex},
+    thread,
+};
 
-use zellij_utils::{cli::CliArgs, input::{config::Config, layout::Layout, options::Options}, ipc::{ClientAttributes, ClientToServerMsg, ServerToClientMsg, ExitReason}, envs, data::{Style, ConnectToSession}, shared::set_permissions, consts::ZELLIJ_SOCK_DIR, channels::{ChannelWithContext, SenderWithContext, self}, errors::{FatalError, ContextType}};
+use zellij_utils::{
+    channels::{self, ChannelWithContext, SenderWithContext},
+    cli::CliArgs,
+    consts::ZELLIJ_SOCK_DIR,
+    data::{ConnectToSession, Style},
+    envs,
+    errors::{ContextType, FatalError},
+    input::{config::Config, layout::Layout, options::Options},
+    ipc::{ClientAttributes, ClientToServerMsg, ExitReason, ServerToClientMsg},
+    shared::set_permissions,
+};
 
-use crate::{os_input_output::ClientOsApi, ClientInfo, command_is_executing::CommandIsExecuting, stdin_ansi_parser::{StdinAnsiParser, SyncOutput}, ClientInstruction, stdin_handler::stdin_loop, input_handler::input_loop, spawn_server, InputInstruction};
+use crate::{
+    command_is_executing::CommandIsExecuting,
+    input_handler::input_loop,
+    os_input_output::ClientOsApi,
+    spawn_server,
+    stdin_ansi_parser::{StdinAnsiParser, SyncOutput},
+    stdin_handler::stdin_loop,
+    ClientInfo, ClientInstruction, InputInstruction,
+};
 use log::info;
 
 pub fn start_client_ssh(
@@ -363,7 +384,6 @@ pub fn start_client_ssh(
         let _ = stdout.write(goodbye_message.as_bytes()).unwrap();
         let _ = send_input_instructions.send(InputInstruction::Exit);
         os_input.close();
-
     } else {
         let clear_screen = "\u{1b}[2J";
         let mut stdout = os_input.get_stdout_writer();

@@ -18,7 +18,6 @@ mod ui;
 use background_jobs::{background_jobs_main, BackgroundJob};
 use log::info;
 use pty_writer::{pty_writer_main, PtyWriteInstruction};
-use zellij_utils::ServerMode;
 use std::collections::{HashMap, HashSet};
 use std::{
     path::PathBuf,
@@ -28,6 +27,7 @@ use std::{
 use zellij_utils::envs;
 use zellij_utils::nix::sys::stat::{umask, Mode};
 use zellij_utils::pane_size::Size;
+use zellij_utils::ServerMode;
 
 use wasmer::Store;
 
@@ -506,7 +506,7 @@ pub fn start_server(mut os_input: Box<dyn ServerOsApi>, socket_path: PathBuf, fo
                         continue;
                     }
                 }
-                
+
                 let _ =
                     os_input.send_to_client(client_id, ServerToClientMsg::Exit(ExitReason::Normal));
                 remove_client!(client_id, os_input, session_state);
@@ -538,7 +538,11 @@ pub fn start_server(mut os_input: Box<dyn ServerOsApi>, socket_path: PathBuf, fo
                     .unwrap();
             },
             ServerInstruction::RemoveClient(client_id) => {
-                info!("remove client {:?} {:?}", client_id, session_state.read().unwrap().client_ids());
+                info!(
+                    "remove client {:?} {:?}",
+                    client_id,
+                    session_state.read().unwrap().client_ids()
+                );
                 remove_client!(client_id, os_input, session_state);
                 if let Some(min_size) = session_state.read().unwrap().min_client_terminal_size() {
                     session_data
@@ -628,7 +632,9 @@ pub fn start_server(mut os_input: Box<dyn ServerOsApi>, socket_path: PathBuf, fo
                     }
                 } else {
                     if foreground {
-                        to_server.send(ServerInstruction::DetachSession(client_ids)).unwrap();
+                        to_server
+                            .send(ServerInstruction::DetachSession(client_ids))
+                            .unwrap();
                         continue;
                     }
 
@@ -712,7 +718,7 @@ pub fn start_server(mut os_input: Box<dyn ServerOsApi>, socket_path: PathBuf, fo
                 } else {
                     ServerMode::Normal
                 };
-                
+
                 let _ = os_input.send_to_client(client_id, ServerToClientMsg::ServerMode(mode));
             },
         }

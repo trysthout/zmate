@@ -11,12 +11,13 @@ use tokio::sync::mpsc::UnboundedSender;
 use zellij_client::os_input_output::{ClientOsApi, StdinPoller};
 use zellij_utils::{
     anyhow::{Context, Result},
-    pane_size::Size,
     data::Palette,
     errors::ErrorContext,
+    interprocess,
     ipc::{ClientToServerMsg, IpcReceiverWithContext, IpcSenderWithContext, ServerToClientMsg},
+    libc, nix,
+    pane_size::Size,
     shared::default_palette,
-    interprocess, libc, nix,
 };
 
 use crate::{ServerHandle, ServerOutput, ZellijClientData};

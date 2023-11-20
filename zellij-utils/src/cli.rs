@@ -547,9 +547,9 @@ pub enum CliAction {
 }
 
 #[derive(Clone)]
-pub enum ServerMode  {
+pub enum ServerMode {
     Ssh,
-    Normal
+    Normal,
 }
 
 impl std::fmt::Debug for ServerMode {

@@ -1,15 +1,14 @@
-use std::fmt::{Formatter, Display, Debug};
+use std::fmt::{Debug, Display, Formatter};
 
-use russh::{ChannelId, Pty, server::Handle};
+use russh::{server::Handle, ChannelId, Pty};
 use tokio::sync::mpsc::UnboundedSender;
 
 mod handler;
-mod session;
-pub mod zellij;
-mod ssh_input_output;
-mod session_util;
 pub mod server;
-
+mod session;
+mod session_util;
+mod ssh_input_output;
+pub mod zellij;
 
 pub enum ZellijClientData {
     Data(String),

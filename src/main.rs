@@ -132,7 +132,7 @@ fn main() {
     {
         commands::delete_session(target_session, force);
     } else if let Some(Command::Ssh(ssh_opts)) = opts.command.clone() {
-        println!("{:?}", ssh_opts);   
+        println!("{:?}", ssh_opts);
         ssh::start(opts, ssh_opts)
     } else if let Some(path) = opts.server {
         commands::start_server(path, opts.debug);

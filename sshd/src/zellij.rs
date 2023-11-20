@@ -1,15 +1,54 @@
-
-use std::{process, time::Duration, path::PathBuf, fs::File, io::Read, sync::{Arc, Mutex}, thread::{JoinHandle, self}};
+use crate::{
+    session_util::{
+        assert_dead_session, assert_session, assert_session_ne,
+        delete_session as delete_session_impl, get_active_session, get_name_generator,
+        get_resurrectable_sessions, get_sessions, get_sessions_sorted_by_mtime,
+        kill_session as kill_session_impl, list_sessions, match_session_name, print_sessions,
+        print_sessions_with_index, resurrection_layout, session_exists, ActiveSession,
+        SessionNameMatch,
+    },
+    ssh_input_output::SshInputOutput,
+    ServerHandle, ZellijClientData,
+};
 use dialoguer::Confirm;
 use log::info;
-use russh::{Sig, ChannelId};
+use russh::{ChannelId, Sig};
+use std::{
+    fs::File,
+    io::Read,
+    path::PathBuf,
+    process,
+    sync::{Arc, Mutex},
+    thread::{self, JoinHandle},
+    time::Duration,
+};
 use tokio::sync::mpsc::UnboundedSender;
-use zellij_client::{old_config_converter::{convert_old_yaml_files, config_yaml_to_config_kdl, layout_yaml_to_layout_kdl}, ClientInfo, os_input_output::{get_client_os_input, ClientOsApi}, ssh_client::start_client_ssh};
+use zellij_client::{
+    old_config_converter::{
+        config_yaml_to_config_kdl, convert_old_yaml_files, layout_yaml_to_layout_kdl,
+    },
+    os_input_output::{get_client_os_input, ClientOsApi},
+    ssh_client::start_client_ssh,
+    ClientInfo,
+};
 use zellij_server::{os_input_output::get_server_os_input, start_server};
-use zellij_utils::{cli::{CliArgs, Command, Sessions, SessionCommand}, setup::Setup, input::{config::{ConfigError, Config}, options::Options, actions::Action, layout::Layout}, miette::{Report, Result}, data::{ConnectToSession, Style}, envs, nix, consts::ZELLIJ_SOCK_DIR, shared::set_permissions, ipc::{ClientAttributes, ClientToServerMsg}};
-use crate::{ServerHandle, ZellijClientData, session_util::{assert_session_ne, resurrection_layout,  kill_session as kill_session_impl, delete_session as delete_session_impl, SessionNameMatch, get_active_session, ActiveSession, match_session_name, session_exists, get_sessions_sorted_by_mtime, print_sessions, get_sessions, get_resurrectable_sessions, assert_dead_session, assert_session, print_sessions_with_index, list_sessions, get_name_generator}, ssh_input_output::SshInputOutput};
-
-
+use zellij_utils::{
+    cli::{CliArgs, Command, SessionCommand, Sessions},
+    consts::ZELLIJ_SOCK_DIR,
+    data::{ConnectToSession, Style},
+    envs,
+    input::{
+        actions::Action,
+        config::{Config, ConfigError},
+        layout::Layout,
+        options::Options,
+    },
+    ipc::{ClientAttributes, ClientToServerMsg},
+    miette::{Report, Result},
+    nix,
+    setup::Setup,
+    shared::set_permissions,
+};
 
 pub(crate) fn kill_all_sessions(yes: bool) {
     match get_sessions() {
@@ -113,7 +152,6 @@ pub(crate) fn get_os_input<OsInputOutput>(
         },
     }
 }
-
 
 fn create_new_client() -> ClientInfo {
     ClientInfo::New(generate_unique_session_name())
@@ -377,7 +415,14 @@ pub(crate) fn start_client(
         },
     };
     let mut reconnect_to_session: Option<ConnectToSession> = None;
-    let os_input = get_ssh_client_input(handle, channel_id, win_size, sender, server_receiver, server_signal_receiver);
+    let os_input = get_ssh_client_input(
+        handle,
+        channel_id,
+        win_size,
+        sender,
+        server_receiver,
+        server_signal_receiver,
+    );
     loop {
         let os_input = os_input.clone();
         let config = config.clone();
@@ -596,7 +641,6 @@ fn get_ssh_client_input(
     }
 }
 
-
 pub fn init_zellij_server(opts: CliArgs) -> JoinHandle<()> {
     if let Some(ref name) = opts.session {
         envs::set_session_name(name.clone());
@@ -611,7 +655,8 @@ pub fn init_zellij_server(opts: CliArgs) -> JoinHandle<()> {
     zellij_utils::consts::DEBUG_MODE.set(opts.debug).unwrap();
     let os_input = get_os_input(get_server_os_input);
 
-    let thread_join_handle = thread::spawn(move || start_server(Box::new(os_input), create_ipc_pipe(), true));
+    let thread_join_handle =
+        thread::spawn(move || start_server(Box::new(os_input), create_ipc_pipe(), true));
 
     let (config, layout, config_options) = match Setup::from_cli_args(&opts) {
         Ok(results) => results,
@@ -640,7 +685,6 @@ pub fn init_zellij_server(opts: CliArgs) -> JoinHandle<()> {
     );
     thread_join_handle
 }
-
 
 pub fn init_zellij_client(
     os_input: Box<dyn ClientOsApi>,
@@ -684,8 +728,6 @@ pub fn init_zellij_client(
     os_input.send_to_server(first_msg);
     os_input.send_to_server(ClientToServerMsg::DetachSession(vec![1]))
 }
-
-
 
 fn generate_unique_session_name() -> String {
     let sessions = get_sessions().map(|sessions| {

@@ -5,9 +5,9 @@ use crate::{
     errors::{get_current_ctx, prelude::*, ErrorContext},
     input::keybinds::Keybinds,
     input::{actions::Action, layout::Layout, options::Options, plugins::PluginsConfig},
-    pane_size::{Size, SizeInPixels}, ServerMode,
+    pane_size::{Size, SizeInPixels},
+    ServerMode,
 };
-use crossbeam::channel::Sender;
 use interprocess::local_socket::LocalSocketStream;
 use log::warn;
 use nix::unistd::dup;

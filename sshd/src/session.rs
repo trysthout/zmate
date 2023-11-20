@@ -1,8 +1,11 @@
-use russh::{CryptoVec, server::Handle, Sig};
-use tokio::sync::mpsc::{UnboundedReceiver, unbounded_channel};
-use zellij_utils::{cli::CliArgs, envs, cli::Command, cli::Sessions};
+use russh::{server::Handle, CryptoVec, Sig};
+use tokio::sync::mpsc::{unbounded_channel, UnboundedReceiver};
+use zellij_utils::{cli::CliArgs, cli::Command, cli::Sessions, envs};
 
-use crate::{handler::HandlerEvent, ZellijClientData, zellij::start_client, ServerHandle, PtyRequest, ServerChannelId};
+use crate::{
+    handler::HandlerEvent, zellij::start_client, PtyRequest, ServerChannelId, ServerHandle,
+    ZellijClientData,
+};
 
 pub struct Session {
     handle: Option<Handle>,
@@ -48,10 +51,13 @@ impl Session {
             HandlerEvent::Authenticated(handle, tx) => {
                 self.handle = Some(handle.0);
 
-                self.zellij_cli_args.command = Some(Command::Sessions(Sessions::Attach { 
-                    session_name: envs::get_session_name().ok(), 
-                    create: false, 
-                    index: None, options: None, force_run_commands: false }));
+                self.zellij_cli_args.command = Some(Command::Sessions(Sessions::Attach {
+                    session_name: envs::get_session_name().ok(),
+                    create: false,
+                    index: None,
+                    options: None,
+                    force_run_commands: false,
+                }));
 
                 let _ = tx.send(());
             },
@@ -110,4 +116,3 @@ impl Session {
         }
     }
 }
-

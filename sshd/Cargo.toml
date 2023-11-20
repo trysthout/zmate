@@ -26,8 +26,3 @@ crossbeam-channel = "0.5.8"
 signal-hook = "0.3.17"
 interprocess = "1.2.1"
 libc = "0.2.149"
-
-
-[[bin]]
-name= "zellij-ssh"
-path = "src/main.rs"
