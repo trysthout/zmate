@@ -800,6 +800,7 @@ impl<'a> FloatingPaneGrid<'a> {
     pub fn find_room_for_new_pane(&self) -> Option<PaneGeom> {
         let panes = self.panes.borrow();
         let pane_geoms: Vec<PaneGeom> = panes.values().map(|p| p.position_and_size()).collect();
+        log::info!("pane_geoms {:?}, viewport {:?} display {:?}", pane_geoms, self.viewport, self.display_area);
 
         macro_rules! find_unoccupied_offset {
             ($get_geom_with_offset:expr, $viewport:expr, $other_geoms:expr) => {
@@ -855,15 +856,29 @@ impl<'a> FloatingPaneGrid<'a> {
 }
 
 fn half_size_middle_geom(space: &Viewport, offset: usize) -> PaneGeom {
+    log::info!("half_before vp {:?} offset {:?}", space, offset);
+    //  x: 0, y: 1, rows: 19, cols: 213
+    //  x: 53 y: 6  rows: 9 cols: 106
+
+    //  
+
     let mut geom = PaneGeom {
-        x: space.x + (space.cols as f64 / 4.0).round() as usize + offset,
-        y: space.y + (space.rows as f64 / 4.0).round() as usize + offset,
-        cols: Dimension::fixed(space.cols / 2),
-        rows: Dimension::fixed(space.rows / 2),
+        //x: space.x + (space.cols as f64 / 4.0).round() as usize + offset,
+        //y: space.y + (space.rows as f64 / 4.0).round() as usize + offset,
+        x: space.x + (20_f64/ 4.0).round() as usize + offset,
+        y: space.y + (8_f64 / 4.0).round() as usize + offset,
+        //cols: Dimension::fixed(space.cols / 2),
+        //rows: Dimension::fixed(space.rows / 2),
+        cols: Dimension::fixed(20),
+        rows: Dimension::fixed(8),
         is_stacked: false,
     };
-    geom.cols.set_inner(space.cols / 2);
-    geom.rows.set_inner(space.rows / 2);
+    //geom.cols.set_inner(space.cols / 2);
+    //geom.rows.set_inner(space.rows / 2);
+    geom.cols.set_inner(20);
+    geom.rows.set_inner(8);
+
+    log::info!("half_size {:?}", geom);
     geom
 }
 

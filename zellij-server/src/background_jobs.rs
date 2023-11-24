@@ -421,10 +421,10 @@ fn find_resurrectable_sessions(
                     {
                         Ok(created) => Some(created),
                         Err(e) => {
-                            log::error!(
-                                "Failed to read created stamp of resurrection file: {:?}",
-                                e
-                            );
+                            //log::error!(
+                            //    "Failed to read created stamp of resurrection file: {:?}",
+                            //    e
+                            //);
                             None
                         },
                     };

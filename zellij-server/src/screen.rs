@@ -288,6 +288,7 @@ pub enum ScreenInstruction {
         Option<PaneId>,
         Option<PathBuf>, // cwd
         Option<ClientId>,
+        Size,
     ),
     UpdatePluginLoadingStage(u32, LoadingIndication), // u32 - plugin_id
     StartPluginLoadingIndication(u32, LoadingIndication), // u32 - plugin_id
@@ -3168,6 +3169,11 @@ pub(crate) fn screen_thread_main(
                 match screen.active_tab_indices.values().next() {
                     Some(tab_index) => {
                         let size = Size::default();
+                        let size = Size {
+                            rows: 8,
+                            cols: 20,
+                        };
+                        log::info!("size ========================= {:?}", size);
                         let should_float = Some(true);
                         let should_be_opened_in_place = false;
                         screen
@@ -3183,6 +3189,7 @@ pub(crate) fn screen_thread_main(
                                 client_id,
                                 size,
                             ))?;
+
                     },
                     None => {
                         log::error!(
@@ -3247,6 +3254,7 @@ pub(crate) fn screen_thread_main(
                 pane_id_to_replace,
                 cwd,
                 client_id,
+                size,
             ) => {
                 let pane_title = pane_title.unwrap_or_else(|| {
                     format!(
@@ -3283,6 +3291,7 @@ pub(crate) fn screen_thread_main(
                         log::error!("Must have pane id to replace or connected client_id if replacing a pane");
                     }
                 } else if let Some(active_tab) = screen.tabs.get_mut(&tab_index) {
+                    active_tab.set_plugin_fixed_size(plugin_id, size);
                     active_tab.new_pane(
                         PaneId::Plugin(plugin_id),
                         Some(pane_title),

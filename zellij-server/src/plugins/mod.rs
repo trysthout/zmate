@@ -197,6 +197,7 @@ pub(crate) fn plugin_thread_main(
                         pane_id_to_replace,
                         cwd,
                         Some(client_id),
+                        size,
                     )));
                 },
                 Err(e) => {
@@ -234,6 +235,7 @@ pub(crate) fn plugin_thread_main(
                                         None,
                                         None,
                                         None,
+                                        size,
                                     )));
                                 },
                                 Err(e) => {
@@ -248,6 +250,7 @@ pub(crate) fn plugin_thread_main(
                 }
             },
             PluginInstruction::Resize(pid, new_columns, new_rows) => {
+                log::info!("new colums {:?}", new_columns);
                 wasm_bridge.resize_plugin(pid, new_columns, new_rows, shutdown_send.clone())?;
             },
             PluginInstruction::AddClient(client_id) => {

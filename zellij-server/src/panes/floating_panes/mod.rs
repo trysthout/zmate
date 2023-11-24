@@ -104,6 +104,7 @@ impl FloatingPanes {
     pub fn add_pane(&mut self, pane_id: PaneId, pane: Box<dyn Pane>) {
         self.desired_pane_positions
             .insert(pane_id, pane.position_and_size());
+        log::info!("add_pane {:?}", pane.position_and_size());
         self.panes.insert(pane_id, pane);
         self.z_indices.push(pane_id);
     }

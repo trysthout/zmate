@@ -1,4 +1,5 @@
 use zellij_utils::errors::prelude::*;
+use zellij_utils::pane_size::Dimension;
 
 use crate::resize_pty;
 use crate::tab::{get_next_terminal_position, HoldForCommand, Pane};
@@ -361,6 +362,7 @@ impl<'a> LayoutApplier<'a> {
             let position_and_size = self
                 .floating_panes
                 .position_floating_pane_layout(&floating_pane_layout);
+            log::info!("position_and_size {:?}", position_and_size);
             if floating_pane_layout.already_running {
                 self.floating_panes.set_geom_for_pane_with_run(
                     floating_pane_layout.run.clone(),
@@ -514,7 +516,26 @@ impl<'a> LayoutApplier<'a> {
         let remaining_pane_ids: Vec<PaneId> = existing_tab_state.pane_ids();
         for pane_id in remaining_pane_ids {
             match self.floating_panes.find_room_for_new_pane() {
-                Some(position_and_size) => {
+                Some(mut position_and_size) => {
+                    log::info!("popo**************************** {:?}", position_and_size);
+                    //position_and_size.rows = Dimension::fixed(8);
+                    //position_and_size.cols = Dimension::fixed(20);
+                    //position_and_size.rows.set_inner(8);
+                    //position_and_size.cols.set_inner(20);
+                    ////if let PaneId::Plugin(pid) = pane_id {
+                    //    if let Some(fixed_size) = self.plugins_fixed_pane_size.get(&pid) {
+                    //        new_pane_geom.rows = Dimension::fixed(fixed_size.rows);
+                    //        new_pane_geom.cols = Dimension::fixed(fixed_size.cols);
+                    //    //let new_pane_geom = PaneGeom { 
+                    //    //    x: new_pane_geom.x, 
+                    //    //    y: new_pane_geom.y, 
+                    //    //    rows: new_pane_geom.rows, 
+                    //    //    cols: Dimension::fixed(8), 
+                    //    //    is_stacked: new_pane_geom.is_stacked,
+                    //    //};
+                    //    }
+                    //}
+                    
                     if let Some(mut pane) = existing_tab_state.remove_pane(&pane_id) {
                         layout_has_floating_panes = true;
                         self.apply_floating_pane_layout_properties_to_pane(
