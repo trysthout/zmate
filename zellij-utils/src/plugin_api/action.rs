@@ -8,11 +8,12 @@ pub use super::generated_api::api::{
         Position as ProtobufPosition, RunCommandAction as ProtobufRunCommandAction,
         ScrollAtPayload, SearchDirection as ProtobufSearchDirection,
         SearchOption as ProtobufSearchOption, SwitchToModePayload, WriteCharsPayload, WritePayload,
+        Size as ProtobufSize,
     },
     input_mode::InputMode as ProtobufInputMode,
     resize::{Resize as ProtobufResize, ResizeDirection as ProtobufResizeDirection},
 };
-use crate::data::{Direction, InputMode, ResizeStrategy};
+use crate::{data::{Direction, InputMode, ResizeStrategy}, pane_size::Size};
 use crate::errors::prelude::*;
 use crate::input::actions::Action;
 use crate::input::actions::{SearchDirection, SearchOption};
@@ -556,7 +557,8 @@ impl TryFrom<ProtobufAction> for Action {
                             configuration: PluginUserConfiguration::default(),
                         };
                         let pane_name = payload.pane_name;
-                        Ok(Action::NewFloatingPluginPane(run_plugin, pane_name))
+                        let size = payload.size.and_then(|s| Size::try_from(&s).ok());
+                        Ok(Action::NewFloatingPluginPane(run_plugin, pane_name, size))
                     },
                     _ => Err("Wrong payload for Action::MiddleClick"),
                 }
@@ -1123,11 +1125,12 @@ impl TryFrom<Action> for ProtobufAction {
                         NewPluginPanePayload {
                             plugin_url: plugin_url.into(),
                             pane_name,
+                            size: None,
                         },
                     )),
                 })
             },
-            Action::NewFloatingPluginPane(run_plugin, pane_name) => {
+            Action::NewFloatingPluginPane(run_plugin, pane_name, size) => {
                 let plugin_url: Url = Url::from(&run_plugin.location);
                 Ok(ProtobufAction {
                     name: ProtobufActionName::NewFloatingPluginPane as i32,
@@ -1135,6 +1138,7 @@ impl TryFrom<Action> for ProtobufAction {
                         NewPluginPanePayload {
                             plugin_url: plugin_url.into(),
                             pane_name,
+                            size: size.and_then(|s| ProtobufSize::try_from(s).ok())
                         },
                     )),
                 })
@@ -1377,5 +1381,26 @@ impl TryFrom<&ProtobufPluginConfiguration> for BTreeMap<String, String> {
             );
         }
         Ok(converted)
+    }
+}
+
+impl TryFrom<Size> for ProtobufSize {
+    type Error = &'static str;
+
+    fn try_from(value: Size) -> Result<Self, &'static str> {
+        Ok(
+            ProtobufSize {
+                rows: value.rows as u32,
+                cols: value.cols as u32,
+            }
+        )   
+    }
+}
+
+impl TryFrom<&ProtobufSize> for Size {
+    type Error = &'static str;
+
+    fn try_from(value: &ProtobufSize) -> std::result::Result<Self, Self::Error> {
+        Ok(Size { rows: value.rows as usize, cols: value.cols as usize })
     }
 }

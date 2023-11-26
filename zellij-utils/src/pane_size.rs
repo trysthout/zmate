@@ -1,7 +1,7 @@
 use serde::{Deserialize, Serialize};
 use std::{
     fmt::Display,
-    hash::{Hash, Hasher},
+    hash::{Hash, Hasher}, str::FromStr,
 };
 
 use crate::input::layout::SplitDirection;
@@ -40,10 +40,34 @@ pub struct Offset {
     pub left: usize,
 }
 
-#[derive(Clone, Copy, Default, PartialEq, Debug, Serialize, Deserialize)]
+#[derive(Clone, Copy, Default, Eq, PartialEq, Debug, Serialize, Deserialize)]
 pub struct Size {
     pub rows: usize,
     pub cols: usize,
+}
+
+impl FromStr for Size {
+    type Err = String; 
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        let configs = s.split(",");
+        let mut size = Size::default();
+        for config in configs {
+            let config = config.split("=").map(|c| c.trim()).collect::<Vec<&str>>();
+            if config.len() != 2 {
+                return Err("invalid size key".to_string());
+            }
+
+            if config[0] == "rows" {
+                size.rows = config[1].parse::<usize>().map_err(|e| e.to_string())?;
+            }
+
+            if config[0] == "cols" {
+                size.cols = config[1].parse::<usize>().map_err(|e| e.to_string())?;
+            }
+        }
+
+        Ok(size)
+    }
 }
 
 #[derive(Clone, Copy, Default, PartialEq, Eq, Debug, Serialize, Deserialize)]
@@ -267,5 +291,19 @@ impl From<&Size> for PaneGeom {
             cols,
             ..Default::default()
         }
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use std::str::FromStr;
+
+    use super::Size;
+
+    #[test]
+    fn size_from_str() {
+        let configs = "rows=1,cols=2";
+        let result = Size::from_str(configs);
+        println!("{:?}", result);
     }
 }

@@ -69,6 +69,7 @@ message PaneIdAndShouldFloat {
 message NewPluginPanePayload {
   string plugin_url = 1;
   optional string pane_name = 2;
+  optional Size size = 3;
 }
 
 enum SearchDirection {
@@ -249,4 +250,9 @@ message PluginConfiguration {
 message NameAndValue {
   string name = 1;
   string value = 2;
+}
+
+message Size {
+  uint32 rows = 1;
+  uint32 cols = 2;
 }

@@ -43,6 +43,7 @@ fn main() {
                 close_on_exit,
                 start_suspended,
                 configuration: None,
+                size: None,
             };
             commands::send_action_to_session(command_cli_action, opts.session, config);
             std::process::exit(0);
@@ -65,6 +66,7 @@ fn main() {
                 close_on_exit: false,
                 start_suspended: false,
                 configuration,
+                size: None,
             };
             commands::send_action_to_session(command_cli_action, opts.session, config);
             std::process::exit(0);

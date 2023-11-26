@@ -250,7 +250,6 @@ pub(crate) fn plugin_thread_main(
                 }
             },
             PluginInstruction::Resize(pid, new_columns, new_rows) => {
-                log::info!("new colums {:?}", new_columns);
                 wasm_bridge.resize_plugin(pid, new_columns, new_rows, shutdown_send.clone())?;
             },
             PluginInstruction::AddClient(client_id) => {

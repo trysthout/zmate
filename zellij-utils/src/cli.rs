@@ -1,4 +1,5 @@
 use crate::data::{Direction, InputMode, Resize};
+use crate::pane_size::Size;
 use crate::setup::Setup;
 use crate::ssh::Ssh;
 use crate::{
@@ -422,6 +423,8 @@ pub enum CliAction {
         start_suspended: bool,
         #[clap(long, value_parser)]
         configuration: Option<PluginUserConfiguration>,
+        #[clap(long, value_parser, requires("plugin"), requires("floating"))]
+        size: Option<Size>,
     },
     /// Open the specified file in a new zellij pane with your default EDITOR
     Edit {

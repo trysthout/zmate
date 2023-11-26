@@ -7,7 +7,7 @@ mod layout_applier;
 mod swap_layouts;
 
 use copy_command::CopyCommand;
-use zellij_utils::pane_size::Dimension;
+use zellij_utils::input::layout::PercentOrFixed;
 use std::env::temp_dir;
 use std::path::PathBuf;
 use uuid::Uuid;
@@ -188,8 +188,6 @@ pub(crate) struct Tab {
     debug: bool,
     arrow_fonts: bool,
     styled_underlines: bool,
-    is_fixed_pane_size: bool,
-    plugins_fixed_pane_size: HashMap<u32, Size>
 }
 
 #[derive(Clone, Debug, Default, Serialize, Deserialize)]
@@ -630,8 +628,6 @@ impl Tab {
             debug,
             arrow_fonts,
             styled_underlines,
-            is_fixed_pane_size: false,
-            plugins_fixed_pane_size: HashMap::new(),
         }
     }
 
@@ -1085,7 +1081,6 @@ impl Tab {
                 )) as Box<dyn Pane>
             },
             PaneId::Plugin(plugin_pid) => {
-                log::info!("new plugin pane+++++++++++++++++++++++++++++++++=");
                 Box::new(PluginPane::new(
                     plugin_pid,
                     PaneGeom::default(), // this will be filled out later
@@ -2055,7 +2050,7 @@ impl Tab {
             .resize_pty_all_panes(&mut self.os_api)
             .with_context(err_context)?;
         self.tiled_panes.resize(new_screen_size);
-        if self.auto_layout && !self.is_fixed_pane_size && !self.swap_layouts.is_floating_damaged() {
+        if self.auto_layout && !self.swap_layouts.is_floating_damaged() {
             // we do this only for floating panes, because the constraint system takes care of the
             // tiled panes
             self.swap_layouts.set_is_floating_damaged();
@@ -3664,25 +3659,22 @@ impl Tab {
         client_id: Option<ClientId>,
     ) -> Result<()> {
         let err_context = || format!("failed to add floating pane");
-        if let Some(mut new_pane_geom) = self.floating_panes.find_room_for_new_pane() {
-            if let PaneId::Plugin(pid) = pane_id {
-                if let Some(fixed_size) = self.plugins_fixed_pane_size.get(&pid) {
-                    new_pane_geom.rows = Dimension::fixed(fixed_size.rows);
-                    new_pane_geom.cols = Dimension::fixed(fixed_size.cols);
-                //let new_pane_geom = PaneGeom { 
-                //    x: new_pane_geom.x, 
-                //    y: new_pane_geom.y, 
-                //    rows: new_pane_geom.rows, 
-                //    cols: Dimension::fixed(8), 
-                //    is_stacked: new_pane_geom.is_stacked,
-                //};
-                }
-            }
+        if let Some(new_pane_geom) = self.floating_panes.position_floating_pane_layout(&FloatingPaneLayout::default(), Some(pane_id)) {
+            //if let Some(fixed_size) = self.fixed_pane_size.get(&pane_id) {
+            //    new_pane_geom.rows = Dimension::fixed(fixed_size.rows);
+            //    new_pane_geom.cols = Dimension::fixed(fixed_size.cols);
+            //    //let new_pane_geom = PaneGeom { 
+            //    //    x: new_pane_geom.x, 
+            //    //    y: new_pane_geom.y, 
+            //    //    rows: new_pane_geom.rows, 
+            //    //    cols: Dimension::fixed(8), 
+            //    //    is_stacked: new_pane_geom.is_stacked,
+            //    //};
+            //}
             
             pane.set_active_at(Instant::now());
             pane.set_geom(new_pane_geom);
             pane.set_content_offset(Offset::frame(1)); // floating panes always have a frame
-            log::info!("new=== pane geom {:?} {:?}", new_pane_geom, pane.get_content_columns());
             resize_pty!(pane, self.os_api, self.senders, self.character_cell_size)
                 .with_context(err_context)?;
             self.floating_panes.add_pane(pane_id, pane);
@@ -3745,10 +3737,11 @@ impl Tab {
             plugin_pane.request_permissions_from_user(permissions);
         }
     }
-    pub fn set_plugin_fixed_size(&mut self, pid: u32, size: Size) {
-        self.is_fixed_pane_size = true;
-        self.plugins_fixed_pane_size.insert(pid, size);
+
+    pub fn set_fixed_pane_size(&mut self, pane_id: PaneId, size: Size) {
+        self.floating_panes.set_fixed_pane_size(pane_id, size)
     }
+
 }
 
 pub fn pane_info_for_pane(pane_id: &PaneId, pane: &Box<dyn Pane>) -> PaneInfo {

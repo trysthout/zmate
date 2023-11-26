@@ -665,10 +665,10 @@ pub(crate) fn route_action(
                 ))
                 .with_context(err_context)?;
         },
-        Action::NewFloatingPluginPane(run_plugin, name) => {
+        Action::NewFloatingPluginPane(run_plugin, name, size) => {
             senders
                 .send_to_screen(ScreenInstruction::NewFloatingPluginPane(
-                    run_plugin, name, client_id,
+                    run_plugin, name, client_id, size,
                 ))
                 .with_context(err_context)?;
         },

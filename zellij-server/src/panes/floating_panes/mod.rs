@@ -1,7 +1,7 @@
 mod floating_pane_grid;
 use zellij_utils::{
     data::{Direction, PaneInfo, ResizeStrategy},
-    position::Position,
+    position::Position, input::layout::PercentOrFixed,
 };
 
 use crate::resize_pty;
@@ -49,6 +49,7 @@ pub struct FloatingPanes {
     show_panes: bool,
     pane_being_moved_with_mouse: Option<(PaneId, Position)>,
     senders: ThreadSenders,
+    fixed_pane_size: HashMap<PaneId, FloatingPaneLayout>
 }
 
 #[allow(clippy::borrowed_box)]
@@ -84,6 +85,7 @@ impl FloatingPanes {
             active_panes: ActivePanes::new(&os_input),
             pane_being_moved_with_mouse: None,
             senders,
+            fixed_pane_size: HashMap::new(),
         }
     }
     pub fn stack(&self) -> Option<FloatingPanesStack> {
@@ -104,7 +106,6 @@ impl FloatingPanes {
     pub fn add_pane(&mut self, pane_id: PaneId, pane: Box<dyn Pane>) {
         self.desired_pane_positions
             .insert(pane_id, pane.position_and_size());
-        log::info!("add_pane {:?}", pane.position_and_size());
         self.panes.insert(pane_id, pane);
         self.z_indices.push(pane_id);
     }
@@ -227,7 +228,7 @@ impl FloatingPanes {
     pub fn panes_contain(&self, pane_id: &PaneId) -> bool {
         self.panes.contains_key(pane_id)
     }
-    pub fn find_room_for_new_pane(&mut self) -> Option<PaneGeom> {
+    pub fn find_room_for_new_pane(&mut self, pane_id: Option<PaneId>) -> Option<PaneGeom> {
         let display_area = *self.display_area.borrow();
         let viewport = *self.viewport.borrow();
         let floating_pane_grid = FloatingPaneGrid::new(
@@ -235,13 +236,15 @@ impl FloatingPanes {
             &mut self.desired_pane_positions,
             display_area,
             viewport,
+            &mut self.fixed_pane_size,
         );
-        floating_pane_grid.find_room_for_new_pane()
+        floating_pane_grid.find_room_for_new_pane(pane_id)
     }
     pub fn position_floating_pane_layout(
         &mut self,
         floating_pane_layout: &FloatingPaneLayout,
-    ) -> PaneGeom {
+        pane_id: Option<PaneId>,
+    ) -> Option<PaneGeom> {
         let display_area = *self.display_area.borrow();
         let viewport = *self.viewport.borrow();
         let floating_pane_grid = FloatingPaneGrid::new(
@@ -249,37 +252,42 @@ impl FloatingPanes {
             &mut self.desired_pane_positions,
             display_area,
             viewport,
+            &mut self.fixed_pane_size,
         );
-        let mut position = floating_pane_grid.find_room_for_new_pane().unwrap(); // TODO: no unwrap
-        if let Some(x) = &floating_pane_layout.x {
-            position.x = x.to_position(viewport.cols);
+        let position = floating_pane_grid.find_room_for_new_pane(pane_id); 
+        if let Some(mut position) = position {
+            if let Some(x) = &floating_pane_layout.x {
+                position.x = x.to_position(viewport.cols);
+            }
+            if let Some(y) = &floating_pane_layout.y {
+                position.y = y.to_position(viewport.rows);
+            }
+            if let Some(width) = &floating_pane_layout.width {
+                position.cols = Dimension::fixed(width.to_position(viewport.cols));
+            }
+            if let Some(height) = &floating_pane_layout.height {
+                position.rows = Dimension::fixed(height.to_position(viewport.rows));
+            }
+            if position.cols.as_usize() > viewport.cols {
+                position.cols = Dimension::fixed(viewport.cols);
+            }
+            if position.rows.as_usize() > viewport.rows {
+                position.rows = Dimension::fixed(viewport.rows);
+            }
+            if position.x + position.cols.as_usize() > viewport.cols {
+                position.x = position
+                    .x
+                    .saturating_sub((position.x + position.cols.as_usize()) - viewport.cols);
+            }
+            if position.y + position.rows.as_usize() > viewport.rows {
+                position.y = position
+                    .y
+                    .saturating_sub((position.y + position.rows.as_usize()) - viewport.rows);
+            }
+            Some(position)
+        } else {
+            None
         }
-        if let Some(y) = &floating_pane_layout.y {
-            position.y = y.to_position(viewport.rows);
-        }
-        if let Some(width) = &floating_pane_layout.width {
-            position.cols = Dimension::fixed(width.to_position(viewport.cols));
-        }
-        if let Some(height) = &floating_pane_layout.height {
-            position.rows = Dimension::fixed(height.to_position(viewport.rows));
-        }
-        if position.cols.as_usize() > viewport.cols {
-            position.cols = Dimension::fixed(viewport.cols);
-        }
-        if position.rows.as_usize() > viewport.rows {
-            position.rows = Dimension::fixed(viewport.rows);
-        }
-        if position.x + position.cols.as_usize() > viewport.cols {
-            position.x = position
-                .x
-                .saturating_sub((position.x + position.cols.as_usize()) - viewport.cols);
-        }
-        if position.y + position.rows.as_usize() > viewport.rows {
-            position.y = position
-                .y
-                .saturating_sub((position.y + position.rows.as_usize()) - viewport.rows);
-        }
-        position
     }
     pub fn first_floating_pane_id(&self) -> Option<PaneId> {
         self.panes.keys().next().copied()
@@ -389,6 +397,7 @@ impl FloatingPanes {
             &mut self.desired_pane_positions,
             display_area,
             viewport,
+            &mut self.fixed_pane_size,
         );
         floating_pane_grid.resize(new_screen_size).unwrap();
         self.set_force_render();
@@ -420,6 +429,7 @@ impl FloatingPanes {
                 &mut self.desired_pane_positions,
                 display_area,
                 viewport,
+                &mut self.fixed_pane_size,
             );
             floating_pane_grid
                 .change_pane_size(
@@ -465,6 +475,7 @@ impl FloatingPanes {
                 &mut self.desired_pane_positions,
                 display_area,
                 viewport,
+                &mut self.fixed_pane_size,
             );
             let next_index = match direction {
                 Direction::Left => {
@@ -539,6 +550,7 @@ impl FloatingPanes {
             &mut self.desired_pane_positions,
             display_area,
             viewport,
+            &mut self.fixed_pane_size,
         );
         let pane_id = floating_pane_grid.pane_id_on_edge(direction).unwrap();
         self.focus_pane(pane_id, client_id);
@@ -554,6 +566,7 @@ impl FloatingPanes {
                 &mut self.desired_pane_positions,
                 display_area,
                 viewport,
+                &mut self.fixed_pane_size,
             );
             floating_pane_grid.move_pane_down(active_pane_id).unwrap();
             self.set_force_render();
@@ -568,6 +581,7 @@ impl FloatingPanes {
                 &mut self.desired_pane_positions,
                 display_area,
                 viewport,
+                &mut self.fixed_pane_size,
             );
             floating_pane_grid.move_pane_up(active_pane_id).unwrap();
             self.set_force_render();
@@ -582,6 +596,7 @@ impl FloatingPanes {
                 &mut self.desired_pane_positions,
                 display_area,
                 viewport,
+                &mut self.fixed_pane_size,
             );
             floating_pane_grid.move_pane_left(active_pane_id).unwrap();
             self.set_force_render();
@@ -596,6 +611,7 @@ impl FloatingPanes {
                 &mut self.desired_pane_positions,
                 display_area,
                 viewport,
+                &mut self.fixed_pane_size,
             );
             floating_pane_grid.move_pane_right(active_pane_id).unwrap();
             self.set_force_render();
@@ -615,6 +631,7 @@ impl FloatingPanes {
                 &mut self.desired_pane_positions,
                 *self.display_area.borrow(),
                 *self.viewport.borrow(),
+                &mut self.fixed_pane_size,
             );
             if search_backwards {
                 pane_grid.previous_selectable_pane_id(&active_pane_id)
@@ -769,6 +786,7 @@ impl FloatingPanes {
             &mut self.desired_pane_positions,
             display_area,
             viewport,
+            &mut self.fixed_pane_size,
         );
         floating_pane_grid
             .move_pane_by(pane_id, move_x_by, move_y_by)
@@ -914,5 +932,23 @@ impl FloatingPanes {
                 log::error!("Failed to find pane with run: {:?}", run);
             },
         }
+    }
+
+    pub fn set_fixed_pane_size(&mut self, pane_id: PaneId, size: Size) {
+        self.fixed_pane_size.insert(pane_id, FloatingPaneLayout { 
+            name: None, 
+            height: Some(PercentOrFixed::Fixed(size.rows)),
+            width: Some(PercentOrFixed::Fixed(size.cols)), 
+            x: None, 
+            y: None, 
+            run: None, 
+            focus: Some(true), 
+            already_running: false, 
+            pane_initial_contents: None,
+        });
+    }
+
+    pub fn get_fixed_pane_size(&self) -> &HashMap<PaneId, FloatingPaneLayout> {
+        return &self.fixed_pane_size
     }
 }

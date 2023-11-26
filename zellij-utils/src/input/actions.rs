@@ -11,6 +11,7 @@ use crate::data::{Direction, Resize};
 use crate::home::{find_default_config_dir, get_layout_dir};
 use crate::input::config::{Config, ConfigError, KdlError};
 use crate::input::options::OnForceClose;
+use crate::pane_size::Size;
 use miette::{NamedSource, Report};
 use serde::{Deserialize, Serialize};
 
@@ -239,7 +240,7 @@ pub enum Action {
     QueryTabNames,
     /// Open a new tiled (embedded, non-floating) plugin pane
     NewTiledPluginPane(RunPlugin, Option<String>), // String is an optional name
-    NewFloatingPluginPane(RunPlugin, Option<String>), // String is an optional name
+    NewFloatingPluginPane(RunPlugin, Option<String>, Option<Size>), // String is an optional name
     NewInPlacePluginPane(RunPlugin, Option<String>),  // String is an optional name
     StartOrReloadPlugin(RunPlugin),
     CloseTerminalPane(u32),
@@ -310,6 +311,7 @@ impl Action {
                 close_on_exit,
                 start_suspended,
                 configuration,
+                size,
             } => {
                 let current_dir = get_current_dir();
                 let cwd = cwd
@@ -325,7 +327,7 @@ impl Action {
                         configuration: user_configuration,
                     };
                     if floating {
-                        Ok(vec![Action::NewFloatingPluginPane(plugin, name)])
+                        Ok(vec![Action::NewFloatingPluginPane(plugin, name, size)])
                     } else if in_place {
                         Ok(vec![Action::NewInPlacePluginPane(plugin, name)])
                     } else {

@@ -274,7 +274,7 @@ pub enum ScreenInstruction {
     QueryTabNames(ClientId),
     NewTiledPluginPane(RunPlugin, Option<String>, ClientId), // Option<String> is
     // optional pane title
-    NewFloatingPluginPane(RunPlugin, Option<String>, ClientId), // Option<String> is an
+    NewFloatingPluginPane(RunPlugin, Option<String>, ClientId, Option<Size>), // Option<String> is an
     NewInPlacePluginPane(RunPlugin, Option<String>, PaneId, ClientId), // Option<String> is an
     // optional pane title
     StartOrReloadPluginPane(RunPlugin, Option<String>),
@@ -3165,15 +3165,10 @@ pub(crate) fn screen_thread_main(
                         size,
                     ))?;
             },
-            ScreenInstruction::NewFloatingPluginPane(run_plugin, pane_title, client_id) => {
+            ScreenInstruction::NewFloatingPluginPane(run_plugin, pane_title, client_id, size) => {
                 match screen.active_tab_indices.values().next() {
                     Some(tab_index) => {
-                        let size = Size::default();
-                        let size = Size {
-                            rows: 8,
-                            cols: 20,
-                        };
-                        log::info!("size ========================= {:?}", size);
+                        let size = size.unwrap_or_else(|| Size::default());
                         let should_float = Some(true);
                         let should_be_opened_in_place = false;
                         screen
@@ -3291,9 +3286,10 @@ pub(crate) fn screen_thread_main(
                         log::error!("Must have pane id to replace or connected client_id if replacing a pane");
                     }
                 } else if let Some(active_tab) = screen.tabs.get_mut(&tab_index) {
-                    active_tab.set_plugin_fixed_size(plugin_id, size);
+                    let pid = PaneId::Plugin(plugin_id);
+                    active_tab.set_fixed_pane_size( pid, size);
                     active_tab.new_pane(
-                        PaneId::Plugin(plugin_id),
+                        pid,
                         Some(pane_title),
                         should_float,
                         Some(run_plugin),

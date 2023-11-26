@@ -129,6 +129,8 @@ pub struct NewPluginPanePayload {
     pub plugin_url: ::prost::alloc::string::String,
     #[prost(string, optional, tag = "2")]
     pub pane_name: ::core::option::Option<::prost::alloc::string::String>,
+    #[prost(message, optional, tag = "3")]
+    pub size: ::core::option::Option<Size>,
 }
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
@@ -265,6 +267,14 @@ pub struct NameAndValue {
     pub name: ::prost::alloc::string::String,
     #[prost(string, tag = "2")]
     pub value: ::prost::alloc::string::String,
+}
+#[allow(clippy::derive_partial_eq_without_eq)]
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct Size {
+    #[prost(uint32, tag = "1")]
+    pub rows: u32,
+    #[prost(uint32, tag = "2")]
+    pub cols: u32,
 }
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
 #[repr(i32)]

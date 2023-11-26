@@ -191,14 +191,11 @@ impl Pane for PluginPane {
         self.set_should_render(true);
     }
     fn set_geom(&mut self, position_and_size: PaneGeom) {
-        println!("stack {:?}", std::backtrace::Backtrace::force_capture());
         self.geom = position_and_size;
-        log::info!("geom {:?}", self.geom);
         self.resize_grids();
         self.set_should_render(true);
     }
     fn set_geom_override(&mut self, pane_geom: PaneGeom) {
-        println!("stack over {:?}", std::backtrace::Backtrace::force_capture());
         self.geom_override = Some(pane_geom);
         self.resize_grids();
         self.set_should_render(true);

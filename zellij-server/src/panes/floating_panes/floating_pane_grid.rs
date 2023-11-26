@@ -4,6 +4,7 @@ use std::cmp::Ordering;
 use std::collections::HashMap;
 use zellij_utils::data::{Direction, ResizeStrategy};
 use zellij_utils::errors::prelude::*;
+use zellij_utils::input::layout::{FloatingPaneLayout, PercentOrFixed};
 use zellij_utils::pane_size::{Dimension, PaneGeom, Size, Viewport};
 
 use std::cell::RefCell;
@@ -24,6 +25,7 @@ pub struct FloatingPaneGrid<'a> {
     desired_pane_positions: Rc<RefCell<&'a mut HashMap<PaneId, PaneGeom>>>,
     display_area: Size, // includes all panes (including eg. the status bar and tab bar in the default layout)
     viewport: Viewport, // includes all non-UI panes
+    fixed_pane_size: &'a mut  HashMap<PaneId, FloatingPaneLayout>,
 }
 
 impl<'a> FloatingPaneGrid<'a> {
@@ -32,6 +34,7 @@ impl<'a> FloatingPaneGrid<'a> {
         desired_pane_positions: &'a mut HashMap<PaneId, PaneGeom>,
         display_area: Size,
         viewport: Viewport,
+        fixed_pane_size: &'a mut HashMap<PaneId, FloatingPaneLayout>
     ) -> Self {
         let panes: HashMap<_, _> = panes.into_iter().map(|(p_id, p)| (*p_id, p)).collect();
         FloatingPaneGrid {
@@ -39,6 +42,7 @@ impl<'a> FloatingPaneGrid<'a> {
             desired_pane_positions: Rc::new(RefCell::new(desired_pane_positions)),
             display_area,
             viewport,
+            fixed_pane_size,
         }
     }
     pub fn move_pane_by(&mut self, pane_id: PaneId, x: isize, y: isize) -> Result<()> {
@@ -797,10 +801,11 @@ impl<'a> FloatingPaneGrid<'a> {
         };
         Some(previous_active_pane_id)
     }
-    pub fn find_room_for_new_pane(&self) -> Option<PaneGeom> {
+    pub fn find_room_for_new_pane(&self, pane_id: Option<PaneId>) -> Option<PaneGeom> {
         let panes = self.panes.borrow();
         let pane_geoms: Vec<PaneGeom> = panes.values().map(|p| p.position_and_size()).collect();
-        log::info!("pane_geoms {:?}, viewport {:?} display {:?}", pane_geoms, self.viewport, self.display_area);
+        let size_default = FloatingPaneLayout::default();
+        let fixed_pane_size = pane_id.map(|pid| self.fixed_pane_size.get(&pid).unwrap_or_else(|| &size_default));
 
         macro_rules! find_unoccupied_offset {
             ($get_geom_with_offset:expr, $viewport:expr, $other_geoms:expr) => {
@@ -827,27 +832,27 @@ impl<'a> FloatingPaneGrid<'a> {
             };
         }
         find_unoccupied_offset!(
-            |offset| half_size_middle_geom(&self.viewport, offset),
+            |offset| half_size_middle_geom(&self.viewport, offset, fixed_pane_size),
             &self.viewport,
             &pane_geoms
         );
         find_unoccupied_offset!(
-            |offset| half_size_top_left_geom(&self.viewport, offset),
+            |offset| half_size_top_left_geom(&self.viewport, offset, fixed_pane_size),
             &self.viewport,
             &pane_geoms
         );
         find_unoccupied_offset!(
-            |offset| half_size_top_right_geom(&self.viewport, offset),
+            |offset| half_size_top_right_geom(&self.viewport, offset, fixed_pane_size),
             &self.viewport,
             &pane_geoms
         );
         find_unoccupied_offset!(
-            |offset| half_size_bottom_left_geom(&self.viewport, offset),
+            |offset| half_size_bottom_left_geom(&self.viewport, offset, fixed_pane_size),
             &self.viewport,
             &pane_geoms
         );
         find_unoccupied_offset!(
-            |offset| half_size_bottom_right_geom(&self.viewport, offset),
+            |offset| half_size_bottom_right_geom(&self.viewport, offset, fixed_pane_size),
             &self.viewport,
             &pane_geoms
         );
@@ -855,82 +860,120 @@ impl<'a> FloatingPaneGrid<'a> {
     }
 }
 
-fn half_size_middle_geom(space: &Viewport, offset: usize) -> PaneGeom {
-    log::info!("half_before vp {:?} offset {:?}", space, offset);
-    //  x: 0, y: 1, rows: 19, cols: 213
-    //  x: 53 y: 6  rows: 9 cols: 106
+fn half_size_middle_geom(space: &Viewport, offset: usize, fixed_pane_size: Option<&FloatingPaneLayout>) -> PaneGeom {
+    let (rows, cols) = crate::get_auto_fixed_size!(fixed_pane_size, space);
+    
 
-    //  
+    let x = space.x + (space.cols == cols).then(|| (space.cols as f64 /4.0).round() as usize)
+        .unwrap_or_else(||  (space.cols as f64 / 2.0).round() as usize - (cols as f64 / 2.0).round() as usize)
+        + offset;
+    
+    let y = space.y + (space.rows == rows).then(|| (space.rows as f64 /4.0).round() as usize)
+        .unwrap_or_else(||  (space.rows as f64 / 2.0).round() as usize - (rows as f64 / 2.0).round() as usize)
+        + offset;
+
+    let fixed_rows = (space.rows == rows).then(|| space.rows / 2).unwrap_or_else(|| rows);
+    let fixed_cols = (space.cols == cols).then(|| space.cols / 2).unwrap_or_else(|| cols);
 
     let mut geom = PaneGeom {
-        //x: space.x + (space.cols as f64 / 4.0).round() as usize + offset,
-        //y: space.y + (space.rows as f64 / 4.0).round() as usize + offset,
-        x: space.x + (20_f64/ 4.0).round() as usize + offset,
-        y: space.y + (8_f64 / 4.0).round() as usize + offset,
-        //cols: Dimension::fixed(space.cols / 2),
-        //rows: Dimension::fixed(space.rows / 2),
-        cols: Dimension::fixed(20),
-        rows: Dimension::fixed(8),
+        x,
+        y,
+        cols: Dimension::fixed(fixed_cols),
+        rows: Dimension::fixed(fixed_rows),
         is_stacked: false,
     };
-    //geom.cols.set_inner(space.cols / 2);
-    //geom.rows.set_inner(space.rows / 2);
-    geom.cols.set_inner(20);
-    geom.rows.set_inner(8);
+    geom.cols.set_inner(fixed_cols);
+    geom.rows.set_inner(fixed_rows);
 
-    log::info!("half_size {:?}", geom);
     geom
 }
 
-fn half_size_top_left_geom(space: &Viewport, offset: usize) -> PaneGeom {
+fn half_size_top_left_geom(space: &Viewport, offset: usize, fixed_pane_size: Option<&FloatingPaneLayout>) -> PaneGeom {
+    let (rows, cols) = crate::get_auto_fixed_size!(fixed_pane_size, space);
+
+
+    let fixed_rows = (space.rows == rows).then(|| space.rows / 3).unwrap_or_else(|| rows);
+    let fixed_cols = (space.cols == cols).then(|| space.cols / 3).unwrap_or_else(|| cols);
+
     let mut geom = PaneGeom {
         x: space.x + 2 + offset,
         y: space.y + 2 + offset,
-        cols: Dimension::fixed(space.cols / 3),
-        rows: Dimension::fixed(space.rows / 3),
+        cols: Dimension::fixed(fixed_cols),
+        rows: Dimension::fixed(fixed_rows),
         is_stacked: false,
     };
-    geom.cols.set_inner(space.cols / 3);
-    geom.rows.set_inner(space.rows / 3);
+    geom.cols.set_inner(fixed_cols);
+    geom.rows.set_inner(fixed_rows);
     geom
 }
 
-fn half_size_top_right_geom(space: &Viewport, offset: usize) -> PaneGeom {
+fn half_size_top_right_geom(space: &Viewport, offset: usize, fixed_pane_size: Option<&FloatingPaneLayout>) -> PaneGeom {
+    let (rows, cols) = crate::get_auto_fixed_size!(fixed_pane_size, space);
+
+
+    let x = (space.cols == cols).then(|| ((space.x + space.cols) - (space.cols / 3) - 2).saturating_sub(offset))
+        .unwrap_or_else(|| ((space.x + space.cols) - cols - 2).saturating_sub(offset));
+    let y = space.y + 2 + offset;
+
+    let fixed_rows = (space.rows == rows).then(|| space.rows / 3).unwrap_or_else(|| rows);
+    let fixed_cols = (space.cols == cols).then(|| space.cols / 3).unwrap_or_else(|| cols);
+
+
     let mut geom = PaneGeom {
-        x: ((space.x + space.cols) - (space.cols / 3) - 2).saturating_sub(offset),
-        y: space.y + 2 + offset,
-        cols: Dimension::fixed(space.cols / 3),
-        rows: Dimension::fixed(space.rows / 3),
+        x,
+        y,
+        cols: Dimension::fixed(fixed_cols),
+        rows: Dimension::fixed(fixed_rows),
         is_stacked: false,
     };
-    geom.cols.set_inner(space.cols / 3);
-    geom.rows.set_inner(space.rows / 3);
+    geom.cols.set_inner(fixed_cols);
+    geom.rows.set_inner(fixed_rows);
     geom
 }
 
-fn half_size_bottom_left_geom(space: &Viewport, offset: usize) -> PaneGeom {
+fn half_size_bottom_left_geom(space: &Viewport, offset: usize, fixed_pane_size: Option<&FloatingPaneLayout>) -> PaneGeom {
+    let (rows, cols) = crate::get_auto_fixed_size!(fixed_pane_size, space);
+
+
+    let x = space.x + 2 + offset;
+    let y = (space.cols == cols).then(|| ((space.y + space.rows) - (space.rows / 3) - 2).saturating_sub(offset))
+        .unwrap_or_else(|| ((space.y + space.rows) - rows - 2).saturating_sub(offset));
+
+    let fixed_rows = (space.rows == rows).then(|| space.rows / 3).unwrap_or_else(|| rows);
+    let fixed_cols = (space.cols == cols).then(|| space.cols / 3).unwrap_or_else(|| cols);
+
     let mut geom = PaneGeom {
-        x: space.x + 2 + offset,
-        y: ((space.y + space.rows) - (space.rows / 3) - 2).saturating_sub(offset),
-        cols: Dimension::fixed(space.cols / 3),
-        rows: Dimension::fixed(space.rows / 3),
+        x,
+        y,
+        cols: Dimension::fixed(fixed_cols),
+        rows: Dimension::fixed(fixed_rows),
         is_stacked: false,
     };
-    geom.cols.set_inner(space.cols / 3);
-    geom.rows.set_inner(space.rows / 3);
+    geom.cols.set_inner(fixed_cols);
+    geom.rows.set_inner(fixed_rows);
     geom
 }
 
-fn half_size_bottom_right_geom(space: &Viewport, offset: usize) -> PaneGeom {
+fn half_size_bottom_right_geom(space: &Viewport, offset: usize, fixed_pane_size: Option<&FloatingPaneLayout>) -> PaneGeom {
+    let (rows, cols) = crate::get_auto_fixed_size!(fixed_pane_size, space);
+
+    let x = (space.rows == rows).then(|| ((space.x + space.cols) - (space.cols / 3) - 2).saturating_sub(offset))
+        .unwrap_or_else(|| ((space.x + space.cols) - cols - 2).saturating_sub(offset));
+    let y = (space.cols == cols).then(|| ((space.y + space.rows) - (space.rows / 3) - 2).saturating_sub(offset))
+        .unwrap_or_else(|| ((space.y + space.rows) - rows - 2).saturating_sub(offset));
+
+    let fixed_rows = (space.rows == rows).then(|| space.rows / 3).unwrap_or_else(|| rows);
+    let fixed_cols = (space.cols == cols).then(|| space.cols / 3).unwrap_or_else(|| cols);
+
     let mut geom = PaneGeom {
-        x: ((space.x + space.cols) - (space.cols / 3) - 2).saturating_sub(offset),
-        y: ((space.y + space.rows) - (space.rows / 3) - 2).saturating_sub(offset),
-        cols: Dimension::fixed(space.cols / 3),
-        rows: Dimension::fixed(space.rows / 3),
+        x,
+        y,
+        cols: Dimension::fixed(fixed_cols),
+        rows: Dimension::fixed(fixed_rows),
         is_stacked: false,
     };
-    geom.cols.set_inner(space.cols / 3);
-    geom.rows.set_inner(space.rows / 3);
+    geom.cols.set_inner(fixed_cols);
+    geom.rows.set_inner(fixed_rows);
     geom
 }
 
@@ -951,4 +994,23 @@ fn pane_geom_is_unoccupied_and_inside_viewport(
     existing_geoms: &[PaneGeom],
 ) -> bool {
     pane_geom_is_inside_viewport(viewport, geom) && !existing_geoms.iter().any(|p| p == geom)
+}
+
+#[macro_export]
+macro_rules! get_auto_fixed_size  {
+    ($fixed_pane_size:expr, $space:expr) => {
+        match $fixed_pane_size {
+            Some(size) => {
+                let default_rows = PercentOrFixed::Fixed($space.rows);
+                let default_cols = PercentOrFixed::Fixed($space.cols);
+                let rows = size.height.as_ref().unwrap_or_else(|| &default_rows).to_position($space.rows);
+                //let rows = size.height.unwrap_or_default(0).then(|| $space.rows).unwrap_or_else(|| size.rows);
+                let cols = size.width.as_ref().unwrap_or_else(|| &default_cols).to_position($space.cols);
+                (rows, cols)
+            }
+            None => {
+                ($space.rows, $space.cols)
+            }
+        }
+    };
 }
