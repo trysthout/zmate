@@ -241,7 +241,7 @@ pub enum Action {
     /// Open a new tiled (embedded, non-floating) plugin pane
     NewTiledPluginPane(RunPlugin, Option<String>), // String is an optional name
     NewFloatingPluginPane(RunPlugin, Option<String>, Option<Size>), // String is an optional name
-    NewInPlacePluginPane(RunPlugin, Option<String>),  // String is an optional name
+    NewInPlacePluginPane(RunPlugin, Option<String>),                // String is an optional name
     StartOrReloadPlugin(RunPlugin),
     CloseTerminalPane(u32),
     ClosePluginPane(u32),

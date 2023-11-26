@@ -361,12 +361,13 @@ impl<'a> LayoutApplier<'a> {
             layout_has_floating_panes = true;
             let position_and_size = if let Some(position_and_size) = self
                 .floating_panes
-                .position_floating_pane_layout(&floating_pane_layout, None) {
-                    position_and_size
-                } else {
-                    log::error!("could not find room for pane");
-                    return Err(anyhow!("could not find room for pane")).with_context(err_context);
-                };
+                .position_floating_pane_layout(&floating_pane_layout, None)
+            {
+                position_and_size
+            } else {
+                log::error!("could not find room for pane");
+                return Err(anyhow!("could not find room for pane")).with_context(err_context);
+            };
             if floating_pane_layout.already_running {
                 self.floating_panes.set_geom_for_pane_with_run(
                     floating_pane_layout.run.clone(),
@@ -495,11 +496,12 @@ impl<'a> LayoutApplier<'a> {
         for floating_pane_layout in floating_panes_layout {
             let position_and_size = if let Some(position_and_size) = self
                 .floating_panes
-                .position_floating_pane_layout(&floating_pane_layout, None) {
-                    position_and_size
-                } else {
-                    return Err(anyhow!("could not find room for pane!"));
-                };
+                .position_floating_pane_layout(&floating_pane_layout, None)
+            {
+                position_and_size
+            } else {
+                return Err(anyhow!("could not find room for pane!"));
+            };
             let is_focused = floating_pane_layout.focus.unwrap_or(false);
             if let Some(mut pane) = existing_tab_state.find_and_extract_pane(
                 &floating_pane_layout.run,
@@ -523,8 +525,11 @@ impl<'a> LayoutApplier<'a> {
         }
         let remaining_pane_ids: Vec<PaneId> = existing_tab_state.pane_ids();
         for pane_id in remaining_pane_ids {
-            match self.floating_panes.position_floating_pane_layout(&FloatingPaneLayout::default(), Some(pane_id)) {
-            //match self.floating_panes.find_room_for_new_pane(Some(pane_id)) {
+            match self
+                .floating_panes
+                .position_floating_pane_layout(&FloatingPaneLayout::default(), Some(pane_id))
+            {
+                //match self.floating_panes.find_room_for_new_pane(Some(pane_id)) {
                 Some(position_and_size) => {
                     if let Some(mut pane) = existing_tab_state.remove_pane(&pane_id) {
                         layout_has_floating_panes = true;

@@ -3184,7 +3184,6 @@ pub(crate) fn screen_thread_main(
                                 client_id,
                                 size,
                             ))?;
-
                     },
                     None => {
                         log::error!(
@@ -3287,7 +3286,7 @@ pub(crate) fn screen_thread_main(
                     }
                 } else if let Some(active_tab) = screen.tabs.get_mut(&tab_index) {
                     let pid = PaneId::Plugin(plugin_id);
-                    active_tab.set_fixed_pane_size( pid, size);
+                    active_tab.set_fixed_pane_size(pid, size);
                     active_tab.new_pane(
                         pid,
                         Some(pane_title),

@@ -9,17 +9,20 @@ use std::{
 
 use log::LevelFilter;
 
-use log4rs::{append::{
-    console::ConsoleAppender,
-    rolling_file::{
-        policy::compound::{
-            roll::fixed_window::FixedWindowRoller, trigger::size::SizeTrigger, CompoundPolicy,
-        },
-        RollingFileAppender,
-    },
-}, Handle};
 use log4rs::config::{Appender, Config, Logger, Root};
 use log4rs::encode::pattern::PatternEncoder;
+use log4rs::{
+    append::{
+        console::ConsoleAppender,
+        rolling_file::{
+            policy::compound::{
+                roll::fixed_window::FixedWindowRoller, trigger::size::SizeTrigger, CompoundPolicy,
+            },
+            RollingFileAppender,
+        },
+    },
+    Handle,
+};
 
 use crate::consts::{ZELLIJ_TMP_DIR, ZELLIJ_TMP_LOG_DIR, ZELLIJ_TMP_LOG_FILE};
 use crate::shared::set_permissions;
@@ -27,12 +30,13 @@ use crate::shared::set_permissions;
 const LOG_MAX_BYTES: u64 = 1024 * 1024 * 16; // 16 MiB per log
 
 pub fn configure_logger(output_stdout: bool, handle: Option<Handle>) -> log4rs::Handle {
-    handle.map_or_else(|| {
-        log4rs::init_config(create_logger_config(output_stdout)).unwrap()
-    }, |handle| {
-        handle.set_config(create_logger_config(output_stdout));
-        handle
-    })
+    handle.map_or_else(
+        || log4rs::init_config(create_logger_config(output_stdout)).unwrap(),
+        |handle| {
+            handle.set_config(create_logger_config(output_stdout));
+            handle
+        },
+    )
 }
 
 pub fn create_logger_config(output_stdout: bool) -> log4rs::Config {

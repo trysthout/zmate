@@ -1,7 +1,8 @@
 use serde::{Deserialize, Serialize};
 use std::{
     fmt::Display,
-    hash::{Hash, Hasher}, str::FromStr,
+    hash::{Hash, Hasher},
+    str::FromStr,
 };
 
 use crate::input::layout::SplitDirection;
@@ -47,7 +48,7 @@ pub struct Size {
 }
 
 impl FromStr for Size {
-    type Err = String; 
+    type Err = String;
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         let configs = s.split(",");
         let mut size = Size::default();

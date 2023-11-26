@@ -1,7 +1,8 @@
 mod floating_pane_grid;
 use zellij_utils::{
     data::{Direction, PaneInfo, ResizeStrategy},
-    position::Position, input::layout::PercentOrFixed,
+    input::layout::PercentOrFixed,
+    position::Position,
 };
 
 use crate::resize_pty;
@@ -49,7 +50,7 @@ pub struct FloatingPanes {
     show_panes: bool,
     pane_being_moved_with_mouse: Option<(PaneId, Position)>,
     senders: ThreadSenders,
-    fixed_pane_size: HashMap<PaneId, FloatingPaneLayout>
+    fixed_pane_size: HashMap<PaneId, FloatingPaneLayout>,
 }
 
 #[allow(clippy::borrowed_box)]
@@ -254,7 +255,7 @@ impl FloatingPanes {
             viewport,
             &mut self.fixed_pane_size,
         );
-        let position = floating_pane_grid.find_room_for_new_pane(pane_id); 
+        let position = floating_pane_grid.find_room_for_new_pane(pane_id);
         if let Some(mut position) = position {
             if let Some(x) = &floating_pane_layout.x {
                 position.x = x.to_position(viewport.cols);
@@ -935,20 +936,23 @@ impl FloatingPanes {
     }
 
     pub fn set_fixed_pane_size(&mut self, pane_id: PaneId, size: Size) {
-        self.fixed_pane_size.insert(pane_id, FloatingPaneLayout { 
-            name: None, 
-            height: Some(PercentOrFixed::Fixed(size.rows)),
-            width: Some(PercentOrFixed::Fixed(size.cols)), 
-            x: None, 
-            y: None, 
-            run: None, 
-            focus: Some(true), 
-            already_running: false, 
-            pane_initial_contents: None,
-        });
+        self.fixed_pane_size.insert(
+            pane_id,
+            FloatingPaneLayout {
+                name: None,
+                height: Some(PercentOrFixed::Fixed(size.rows)),
+                width: Some(PercentOrFixed::Fixed(size.cols)),
+                x: None,
+                y: None,
+                run: None,
+                focus: Some(true),
+                already_running: false,
+                pane_initial_contents: None,
+            },
+        );
     }
 
     pub fn get_fixed_pane_size(&self) -> &HashMap<PaneId, FloatingPaneLayout> {
-        return &self.fixed_pane_size
+        return &self.fixed_pane_size;
     }
 }

@@ -25,7 +25,7 @@ pub struct FloatingPaneGrid<'a> {
     desired_pane_positions: Rc<RefCell<&'a mut HashMap<PaneId, PaneGeom>>>,
     display_area: Size, // includes all panes (including eg. the status bar and tab bar in the default layout)
     viewport: Viewport, // includes all non-UI panes
-    fixed_pane_size: &'a mut  HashMap<PaneId, FloatingPaneLayout>,
+    fixed_pane_size: &'a mut HashMap<PaneId, FloatingPaneLayout>,
 }
 
 impl<'a> FloatingPaneGrid<'a> {
@@ -34,7 +34,7 @@ impl<'a> FloatingPaneGrid<'a> {
         desired_pane_positions: &'a mut HashMap<PaneId, PaneGeom>,
         display_area: Size,
         viewport: Viewport,
-        fixed_pane_size: &'a mut HashMap<PaneId, FloatingPaneLayout>
+        fixed_pane_size: &'a mut HashMap<PaneId, FloatingPaneLayout>,
     ) -> Self {
         let panes: HashMap<_, _> = panes.into_iter().map(|(p_id, p)| (*p_id, p)).collect();
         FloatingPaneGrid {
@@ -805,7 +805,11 @@ impl<'a> FloatingPaneGrid<'a> {
         let panes = self.panes.borrow();
         let pane_geoms: Vec<PaneGeom> = panes.values().map(|p| p.position_and_size()).collect();
         let size_default = FloatingPaneLayout::default();
-        let fixed_pane_size = pane_id.map(|pid| self.fixed_pane_size.get(&pid).unwrap_or_else(|| &size_default));
+        let fixed_pane_size = pane_id.map(|pid| {
+            self.fixed_pane_size
+                .get(&pid)
+                .unwrap_or_else(|| &size_default)
+        });
 
         macro_rules! find_unoccupied_offset {
             ($get_geom_with_offset:expr, $viewport:expr, $other_geoms:expr) => {
@@ -860,20 +864,35 @@ impl<'a> FloatingPaneGrid<'a> {
     }
 }
 
-fn half_size_middle_geom(space: &Viewport, offset: usize, fixed_pane_size: Option<&FloatingPaneLayout>) -> PaneGeom {
+fn half_size_middle_geom(
+    space: &Viewport,
+    offset: usize,
+    fixed_pane_size: Option<&FloatingPaneLayout>,
+) -> PaneGeom {
     let (rows, cols) = crate::get_auto_fixed_size!(fixed_pane_size, space);
-    
 
-    let x = space.x + (space.cols == cols).then(|| (space.cols as f64 /4.0).round() as usize)
-        .unwrap_or_else(||  (space.cols as f64 / 2.0).round() as usize - (cols as f64 / 2.0).round() as usize)
-        + offset;
-    
-    let y = space.y + (space.rows == rows).then(|| (space.rows as f64 /4.0).round() as usize)
-        .unwrap_or_else(||  (space.rows as f64 / 2.0).round() as usize - (rows as f64 / 2.0).round() as usize)
+    let x = space.x
+        + (space.cols == cols)
+            .then(|| (space.cols as f64 / 4.0).round() as usize)
+            .unwrap_or_else(|| {
+                (space.cols as f64 / 2.0).round() as usize - (cols as f64 / 2.0).round() as usize
+            })
         + offset;
 
-    let fixed_rows = (space.rows == rows).then(|| space.rows / 2).unwrap_or_else(|| rows);
-    let fixed_cols = (space.cols == cols).then(|| space.cols / 2).unwrap_or_else(|| cols);
+    let y = space.y
+        + (space.rows == rows)
+            .then(|| (space.rows as f64 / 4.0).round() as usize)
+            .unwrap_or_else(|| {
+                (space.rows as f64 / 2.0).round() as usize - (rows as f64 / 2.0).round() as usize
+            })
+        + offset;
+
+    let fixed_rows = (space.rows == rows)
+        .then(|| space.rows / 2)
+        .unwrap_or_else(|| rows);
+    let fixed_cols = (space.cols == cols)
+        .then(|| space.cols / 2)
+        .unwrap_or_else(|| cols);
 
     let mut geom = PaneGeom {
         x,
@@ -888,12 +907,19 @@ fn half_size_middle_geom(space: &Viewport, offset: usize, fixed_pane_size: Optio
     geom
 }
 
-fn half_size_top_left_geom(space: &Viewport, offset: usize, fixed_pane_size: Option<&FloatingPaneLayout>) -> PaneGeom {
+fn half_size_top_left_geom(
+    space: &Viewport,
+    offset: usize,
+    fixed_pane_size: Option<&FloatingPaneLayout>,
+) -> PaneGeom {
     let (rows, cols) = crate::get_auto_fixed_size!(fixed_pane_size, space);
 
-
-    let fixed_rows = (space.rows == rows).then(|| space.rows / 3).unwrap_or_else(|| rows);
-    let fixed_cols = (space.cols == cols).then(|| space.cols / 3).unwrap_or_else(|| cols);
+    let fixed_rows = (space.rows == rows)
+        .then(|| space.rows / 3)
+        .unwrap_or_else(|| rows);
+    let fixed_cols = (space.cols == cols)
+        .then(|| space.cols / 3)
+        .unwrap_or_else(|| cols);
 
     let mut geom = PaneGeom {
         x: space.x + 2 + offset,
@@ -907,17 +933,24 @@ fn half_size_top_left_geom(space: &Viewport, offset: usize, fixed_pane_size: Opt
     geom
 }
 
-fn half_size_top_right_geom(space: &Viewport, offset: usize, fixed_pane_size: Option<&FloatingPaneLayout>) -> PaneGeom {
+fn half_size_top_right_geom(
+    space: &Viewport,
+    offset: usize,
+    fixed_pane_size: Option<&FloatingPaneLayout>,
+) -> PaneGeom {
     let (rows, cols) = crate::get_auto_fixed_size!(fixed_pane_size, space);
 
-
-    let x = (space.cols == cols).then(|| ((space.x + space.cols) - (space.cols / 3) - 2).saturating_sub(offset))
+    let x = (space.cols == cols)
+        .then(|| ((space.x + space.cols) - (space.cols / 3) - 2).saturating_sub(offset))
         .unwrap_or_else(|| ((space.x + space.cols) - cols - 2).saturating_sub(offset));
     let y = space.y + 2 + offset;
 
-    let fixed_rows = (space.rows == rows).then(|| space.rows / 3).unwrap_or_else(|| rows);
-    let fixed_cols = (space.cols == cols).then(|| space.cols / 3).unwrap_or_else(|| cols);
-
+    let fixed_rows = (space.rows == rows)
+        .then(|| space.rows / 3)
+        .unwrap_or_else(|| rows);
+    let fixed_cols = (space.cols == cols)
+        .then(|| space.cols / 3)
+        .unwrap_or_else(|| cols);
 
     let mut geom = PaneGeom {
         x,
@@ -931,16 +964,24 @@ fn half_size_top_right_geom(space: &Viewport, offset: usize, fixed_pane_size: Op
     geom
 }
 
-fn half_size_bottom_left_geom(space: &Viewport, offset: usize, fixed_pane_size: Option<&FloatingPaneLayout>) -> PaneGeom {
+fn half_size_bottom_left_geom(
+    space: &Viewport,
+    offset: usize,
+    fixed_pane_size: Option<&FloatingPaneLayout>,
+) -> PaneGeom {
     let (rows, cols) = crate::get_auto_fixed_size!(fixed_pane_size, space);
-
 
     let x = space.x + 2 + offset;
-    let y = (space.cols == cols).then(|| ((space.y + space.rows) - (space.rows / 3) - 2).saturating_sub(offset))
+    let y = (space.cols == cols)
+        .then(|| ((space.y + space.rows) - (space.rows / 3) - 2).saturating_sub(offset))
         .unwrap_or_else(|| ((space.y + space.rows) - rows - 2).saturating_sub(offset));
 
-    let fixed_rows = (space.rows == rows).then(|| space.rows / 3).unwrap_or_else(|| rows);
-    let fixed_cols = (space.cols == cols).then(|| space.cols / 3).unwrap_or_else(|| cols);
+    let fixed_rows = (space.rows == rows)
+        .then(|| space.rows / 3)
+        .unwrap_or_else(|| rows);
+    let fixed_cols = (space.cols == cols)
+        .then(|| space.cols / 3)
+        .unwrap_or_else(|| cols);
 
     let mut geom = PaneGeom {
         x,
@@ -954,16 +995,26 @@ fn half_size_bottom_left_geom(space: &Viewport, offset: usize, fixed_pane_size: 
     geom
 }
 
-fn half_size_bottom_right_geom(space: &Viewport, offset: usize, fixed_pane_size: Option<&FloatingPaneLayout>) -> PaneGeom {
+fn half_size_bottom_right_geom(
+    space: &Viewport,
+    offset: usize,
+    fixed_pane_size: Option<&FloatingPaneLayout>,
+) -> PaneGeom {
     let (rows, cols) = crate::get_auto_fixed_size!(fixed_pane_size, space);
 
-    let x = (space.rows == rows).then(|| ((space.x + space.cols) - (space.cols / 3) - 2).saturating_sub(offset))
+    let x = (space.rows == rows)
+        .then(|| ((space.x + space.cols) - (space.cols / 3) - 2).saturating_sub(offset))
         .unwrap_or_else(|| ((space.x + space.cols) - cols - 2).saturating_sub(offset));
-    let y = (space.cols == cols).then(|| ((space.y + space.rows) - (space.rows / 3) - 2).saturating_sub(offset))
+    let y = (space.cols == cols)
+        .then(|| ((space.y + space.rows) - (space.rows / 3) - 2).saturating_sub(offset))
         .unwrap_or_else(|| ((space.y + space.rows) - rows - 2).saturating_sub(offset));
 
-    let fixed_rows = (space.rows == rows).then(|| space.rows / 3).unwrap_or_else(|| rows);
-    let fixed_cols = (space.cols == cols).then(|| space.cols / 3).unwrap_or_else(|| cols);
+    let fixed_rows = (space.rows == rows)
+        .then(|| space.rows / 3)
+        .unwrap_or_else(|| rows);
+    let fixed_cols = (space.cols == cols)
+        .then(|| space.cols / 3)
+        .unwrap_or_else(|| cols);
 
     let mut geom = PaneGeom {
         x,

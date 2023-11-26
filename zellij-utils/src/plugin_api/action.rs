@@ -7,19 +7,22 @@ pub use super::generated_api::api::{
         PaneIdAndShouldFloat, PluginConfiguration as ProtobufPluginConfiguration,
         Position as ProtobufPosition, RunCommandAction as ProtobufRunCommandAction,
         ScrollAtPayload, SearchDirection as ProtobufSearchDirection,
-        SearchOption as ProtobufSearchOption, SwitchToModePayload, WriteCharsPayload, WritePayload,
-        Size as ProtobufSize,
+        SearchOption as ProtobufSearchOption, Size as ProtobufSize, SwitchToModePayload,
+        WriteCharsPayload, WritePayload,
     },
     input_mode::InputMode as ProtobufInputMode,
     resize::{Resize as ProtobufResize, ResizeDirection as ProtobufResizeDirection},
 };
-use crate::{data::{Direction, InputMode, ResizeStrategy}, pane_size::Size};
 use crate::errors::prelude::*;
 use crate::input::actions::Action;
 use crate::input::actions::{SearchDirection, SearchOption};
 use crate::input::command::RunCommandAction;
 use crate::input::layout::{PluginUserConfiguration, RunPlugin, RunPluginLocation};
 use crate::position::Position;
+use crate::{
+    data::{Direction, InputMode, ResizeStrategy},
+    pane_size::Size,
+};
 use url::Url;
 
 use std::collections::BTreeMap;
@@ -1138,7 +1141,7 @@ impl TryFrom<Action> for ProtobufAction {
                         NewPluginPanePayload {
                             plugin_url: plugin_url.into(),
                             pane_name,
-                            size: size.and_then(|s| ProtobufSize::try_from(s).ok())
+                            size: size.and_then(|s| ProtobufSize::try_from(s).ok()),
                         },
                     )),
                 })
@@ -1388,12 +1391,10 @@ impl TryFrom<Size> for ProtobufSize {
     type Error = &'static str;
 
     fn try_from(value: Size) -> Result<Self, &'static str> {
-        Ok(
-            ProtobufSize {
-                rows: value.rows as u32,
-                cols: value.cols as u32,
-            }
-        )   
+        Ok(ProtobufSize {
+            rows: value.rows as u32,
+            cols: value.cols as u32,
+        })
     }
 }
 
@@ -1401,6 +1402,9 @@ impl TryFrom<&ProtobufSize> for Size {
     type Error = &'static str;
 
     fn try_from(value: &ProtobufSize) -> std::result::Result<Self, Self::Error> {
-        Ok(Size { rows: value.rows as usize, cols: value.cols as usize })
+        Ok(Size {
+            rows: value.rows as usize,
+            cols: value.cols as usize,
+        })
     }
 }
